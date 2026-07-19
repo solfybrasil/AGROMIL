@@ -1,15 +1,30 @@
 import prisma from "./prisma";
-import { supabase } from "./supabase";
+import { supabase, db } from "./supabase";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_ORDERS } from "./mocks";
 
-// Helper to determine if we can query Prisma directly (TCP/IP connection string is set and not a placeholder)
+// Prisma only works in environments with persistent TCP connections (local dev).
+// On serverless (Netlify), we always go straight to Supabase REST.
+const isServerless = process.env.NETLIFY === "true" || process.env.VERCEL === "1";
+
 const hasPrismaUrl = !!(
+  !isServerless &&
   typeof process !== "undefined" &&
   process.env.DATABASE_URL &&
   !process.env.DATABASE_URL.includes("localhost:51213") &&
   !process.env.DATABASE_URL.includes("[SUA-SENHA]") &&
   !process.env.DATABASE_URL.includes("[YOUR-PASSWORD]")
 );
+
+// Log connection mode on server startup
+if (typeof window === "undefined") {
+  if (hasPrismaUrl) {
+    console.info("[db-service] Mode: Prisma (direct TCP)");
+  } else if (db) {
+    console.info("[db-service] Mode: Supabase REST");
+  } else {
+    console.warn("[db-service] Mode: LOCAL MOCK — configure env vars!");
+  }
+}
 
 // Fallback runtime mock order store for active sessions
 let sessionOrders = [...MOCK_ORDERS];
@@ -36,25 +51,26 @@ async function executeQuery<T>(
   supabaseFn: () => Promise<T>,
   mockValue: T
 ): Promise<T> {
-  // 1. Try Prisma first
+  // 1. Try Prisma first (local dev only — disabled on serverless)
   if (hasPrismaUrl) {
     try {
       return await prismaFn();
     } catch (err) {
-      console.warn("Prisma query failed. Trying Supabase REST API instead...", err);
+      console.warn("[db-service] Prisma query failed. Trying Supabase REST...", err);
     }
   }
 
-  // 2. Try Supabase REST Client
-  if (supabase) {
+  // 2. Try Supabase REST Client (service role OR anon key)
+  if (db) {
     try {
       return await supabaseFn();
     } catch (err) {
-      console.warn("Supabase REST API failed. Falling back to local mock data...", err);
+      console.warn("[db-service] Supabase REST failed. Falling back to mock data...", err);
     }
   }
 
   // 3. Fallback to Local Mock
+  console.warn("[db-service] ⚠️  Using LOCAL MOCK data — no database connection!");
   return mockValue;
 }
 
@@ -78,11 +94,11 @@ async function ensureDefaultCategories() {
       console.warn("Failed to ensure categories via Prisma:", err);
     }
   }
-  if (supabase) {
+  if (db) {
     try {
-      const { data, error } = await supabase.from("Category").select("id");
+      const { data, error } = await db.from("Category").select("id");
       if (!error && (!data || data.length === 0)) {
-        await supabase.from("Category").insert([
+        await db.from("Category").insert([
           { id: "cat-jardinagem", name: "Jardinagem & Vasos", slug: "jardinagem", displayOrder: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
           { id: "cat-petshop", name: "Rações & Acessórios Pet", slug: "petshop", displayOrder: 2, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
           { id: "cat-agropecuaria", name: "Agropecuária Geral", slug: "agropecuaria", displayOrder: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
@@ -129,7 +145,7 @@ export const dbService = {
         });
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Category")
           .select("*")
           .order("displayOrder", { ascending: true });
@@ -168,7 +184,7 @@ export const dbService = {
         }));
       },
       async () => {
-        let query = supabase!.from("Product").select("*");
+        let query = db!.from("Product").select("*");
         if (!options?.includeInactive) query = query.eq("active", true);
         if (options?.categoryId) query = query.eq("categoryId", options.categoryId);
         if (options?.featured) query = query.eq("featured", options.featured);
@@ -213,7 +229,7 @@ export const dbService = {
         };
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Product")
           .select("*, category:Category(*)")
           .eq("id", id)
@@ -262,7 +278,7 @@ export const dbService = {
         }));
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Order")
           .select("*, items:OrderItem(*, product:Product(*))")
           .order("createdAt", { ascending: false });
@@ -312,7 +328,7 @@ export const dbService = {
         };
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Order")
           .select("*, items:OrderItem(*, product:Product(*))")
           .eq("id", id)
@@ -394,9 +410,9 @@ export const dbService = {
       return newOrder;
     }
 
-    if (supabase) {
+    if (db) {
       console.log("[createOrder] Inserting into Order table:", JSON.stringify(formattedOrder));
-      const { data: order, error: orderErr } = await supabase!
+      const { data: order, error: orderErr } = await db!
         .from("Order")
         .insert([formattedOrder])
         .select()
@@ -416,7 +432,7 @@ export const dbService = {
       }));
 
       console.log("[createOrder] Inserting OrderItems:", orderItems.length, "items");
-      const { data: insertedItems, error: itemsErr } = await supabase!.from("OrderItem").insert(orderItems).select();
+      const { data: insertedItems, error: itemsErr } = await db!.from("OrderItem").insert(orderItems).select();
       if (itemsErr) {
         console.error("[createOrder] Supabase OrderItem insert error:", itemsErr);
         throw new Error(`Supabase OrderItem error: ${itemsErr.message} (code: ${itemsErr.code})`);
@@ -453,8 +469,8 @@ export const dbService = {
       });
       return updated;
     }
-    if (supabase) {
-      const { data, error } = await supabase!
+    if (db) {
+      const { data, error } = await db!
         .from("Order")
         .update({ status, updatedAt: new Date().toISOString() })
         .eq("id", orderId)
@@ -482,7 +498,7 @@ export const dbService = {
         });
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("AdminUser")
           .select("*")
           .eq("email", email)
@@ -533,8 +549,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await prisma.product.create({ data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Product").insert([formatted]).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Product").insert([formatted]).select().single();
       if (error) throw error;
       return data;
     }
@@ -553,8 +569,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await prisma.product.update({ where: { id }, data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Product").update(formatted).eq("id", id).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Product").update(formatted).eq("id", id).select().single();
       if (error) throw error;
       return data;
     }
@@ -571,8 +587,8 @@ export const dbService = {
       await prisma.product.delete({ where: { id } });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("Product").delete().eq("id", id);
+    if (db) {
+      const { error } = await db!.from("Product").delete().eq("id", id);
       if (error) throw error;
       return true;
     }
@@ -596,8 +612,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await prisma.category.create({ data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Category").insert([formatted]).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Category").insert([formatted]).select().single();
       if (error) throw error;
       return data;
     }
@@ -615,8 +631,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await prisma.category.update({ where: { id }, data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Category").update(formatted).eq("id", id).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Category").update(formatted).eq("id", id).select().single();
       if (error) throw error;
       return data;
     }
@@ -633,8 +649,8 @@ export const dbService = {
       await prisma.category.delete({ where: { id } });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("Category").delete().eq("id", id);
+    if (db) {
+      const { error } = await db!.from("Category").delete().eq("id", id);
       if (error) throw error;
       return true;
     }
@@ -657,8 +673,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await prisma.customer.create({ data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Customer").insert([formatted]).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Customer").insert([formatted]).select().single();
       if (error) throw error;
       return data;
     }
@@ -672,7 +688,7 @@ export const dbService = {
         return await prisma.customer.findUnique({ where: { email } });
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Customer")
           .select("*")
           .eq("email", email)
@@ -690,7 +706,7 @@ export const dbService = {
         return await prisma.customer.findUnique({ where: { id } });
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Customer")
           .select("*")
           .eq("id", id)
@@ -724,10 +740,10 @@ export const dbService = {
     }
 
     // ── Supabase path ────────────────────────────────────────────
-    if (supabase) {
+    if (db) {
       try {
         // 1ª tentativa: buscar pelo customerId
-        const { data: byId, error: errById } = await supabase!
+        const { data: byId, error: errById } = await db!
           .from("Order")
           .select("*, items:OrderItem(*, product:Product(*))")
           .eq("customerId", customerId)
@@ -740,7 +756,7 @@ export const dbService = {
         // 2ª tentativa: buscar pelo e-mail (compatibilidade retroativa)
         const customer = await dbService.getCustomerById(customerId);
         if (customer?.email) {
-          const { data: byEmail, error: errByEmail } = await supabase!
+          const { data: byEmail, error: errByEmail } = await db!
             .from("Order")
             .select("*, items:OrderItem(*, product:Product(*))")
             .eq("clientEmail", customer.email)
@@ -750,7 +766,7 @@ export const dbService = {
             // Vincula retroativamente pedidos sem customerId
             const unlinked = byEmail.filter((o: any) => !o.customerId);
             if (unlinked.length > 0) {
-              await supabase!
+              await db!
                 .from("Order")
                 .update({ customerId, updatedAt: new Date().toISOString() })
                 .in("id", unlinked.map((o: any) => o.id));
@@ -783,7 +799,7 @@ export const dbService = {
         return coupon ? { ...coupon, value: Number(coupon.value), minOrder: Number(coupon.minOrder) } : null;
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Coupon")
           .select("*")
           .eq("code", upperCode)
@@ -802,7 +818,7 @@ export const dbService = {
         return coupons.map((c: any) => ({ ...c, value: Number(c.value), minOrder: Number(c.minOrder) }));
       },
       async () => {
-        const { data, error } = await supabase!.from("Coupon").select("*").order("createdAt", { ascending: false });
+        const { data, error } = await db!.from("Coupon").select("*").order("createdAt", { ascending: false });
         if (error) throw error;
         return (data || []).map((c: any) => ({ ...c, value: Number(c.value), minOrder: Number(c.minOrder) }));
       },
@@ -827,8 +843,8 @@ export const dbService = {
       const c = await (prisma as any).coupon.create({ data: formatted });
       return { ...c, value: Number(c.value), minOrder: Number(c.minOrder) };
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Coupon").insert([formatted]).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Coupon").insert([formatted]).select().single();
       if (error) throw error;
       return { ...data, value: Number(data.value), minOrder: Number(data.minOrder) };
     }
@@ -847,8 +863,8 @@ export const dbService = {
       const c = await (prisma as any).coupon.update({ where: { id }, data: formatted });
       return { ...c, value: Number(c.value), minOrder: Number(c.minOrder) };
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Coupon").update(formatted).eq("id", id).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Coupon").update(formatted).eq("id", id).select().single();
       if (error) throw error;
       return { ...data, value: Number(data.value), minOrder: Number(data.minOrder) };
     }
@@ -865,8 +881,8 @@ export const dbService = {
       await (prisma as any).coupon.delete({ where: { id } });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("Coupon").delete().eq("id", id);
+    if (db) {
+      const { error } = await db!.from("Coupon").delete().eq("id", id);
       if (error) throw error;
       return true;
     }
@@ -886,11 +902,11 @@ export const dbService = {
         console.warn("Failed to increment coupon uses via Prisma:", err);
       }
     }
-    if (supabase) {
+    if (db) {
       try {
         const coupon = await this.getCouponByCode(upperCode);
         if (coupon) {
-          await supabase!.from("Coupon")
+          await db!.from("Coupon")
             .update({ usedCount: (coupon.usedCount || 0) + 1, updatedAt: new Date().toISOString() })
             .eq("id", coupon.id);
         }
@@ -915,7 +931,7 @@ export const dbService = {
         });
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Review")
           .select("*, customer:Customer(name)")
           .eq("productId", productId)
@@ -940,7 +956,7 @@ export const dbService = {
         });
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Review")
           .select("*, customer:Customer(name), product:Product(name)")
           .order("createdAt", { ascending: false });
@@ -967,8 +983,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await (prisma as any).review.create({ data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Review").insert([formatted]).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Review").insert([formatted]).select().single();
       if (error) throw error;
       return data;
     }
@@ -980,8 +996,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await (prisma as any).review.update({ where: { id }, data: { approved } });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Review").update({ approved }).eq("id", id).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Review").update({ approved }).eq("id", id).select().single();
       if (error) throw error;
       return data;
     }
@@ -998,8 +1014,8 @@ export const dbService = {
       await (prisma as any).review.delete({ where: { id } });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("Review").delete().eq("id", id);
+    if (db) {
+      const { error } = await db!.from("Review").delete().eq("id", id);
       if (error) throw error;
       return true;
     }
@@ -1019,7 +1035,7 @@ export const dbService = {
         });
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Banner")
           .select("*")
           .eq("active", true)
@@ -1037,7 +1053,7 @@ export const dbService = {
         return await (prisma as any).banner.findMany({ orderBy: { displayOrder: 'asc' } });
       },
       async () => {
-        const { data, error } = await supabase!.from("Banner").select("*").order("displayOrder", { ascending: true });
+        const { data, error } = await db!.from("Banner").select("*").order("displayOrder", { ascending: true });
         if (error) throw error;
         return data || [];
       },
@@ -1058,8 +1074,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await (prisma as any).banner.create({ data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Banner").insert([formatted]).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Banner").insert([formatted]).select().single();
       if (error) throw error;
       return data;
     }
@@ -1075,8 +1091,8 @@ export const dbService = {
     if (hasPrismaUrl) {
       return await (prisma as any).banner.update({ where: { id }, data: formatted });
     }
-    if (supabase) {
-      const { data, error } = await supabase!.from("Banner").update(formatted).eq("id", id).select().single();
+    if (db) {
+      const { data, error } = await db!.from("Banner").update(formatted).eq("id", id).select().single();
       if (error) throw error;
       return data;
     }
@@ -1093,8 +1109,8 @@ export const dbService = {
       await (prisma as any).banner.delete({ where: { id } });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("Banner").delete().eq("id", id);
+    if (db) {
+      const { error } = await db!.from("Banner").delete().eq("id", id);
       if (error) throw error;
       return true;
     }
@@ -1119,7 +1135,7 @@ export const dbService = {
         }));
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("Favorite")
           .select("*, product:Product(*)")
           .eq("customerId", customerId);
@@ -1144,8 +1160,8 @@ export const dbService = {
       await (prisma as any).favorite.create({ data: formatted });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("Favorite").insert([formatted]);
+    if (db) {
+      const { error } = await db!.from("Favorite").insert([formatted]);
       if (error && error.code !== '23505') throw error;
       return true;
     }
@@ -1160,8 +1176,8 @@ export const dbService = {
       await (prisma as any).favorite.deleteMany({ where: { customerId, productId } });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("Favorite").delete().eq("customerId", customerId).eq("productId", productId);
+    if (db) {
+      const { error } = await db!.from("Favorite").delete().eq("customerId", customerId).eq("productId", productId);
       if (error) throw error;
       return true;
     }
@@ -1177,8 +1193,8 @@ export const dbService = {
       });
       return favs.map((f: any) => f.productId);
     }
-    if (supabase) {
-      const { data, error } = await supabase!
+    if (db) {
+      const { data, error } = await db!
         .from("Favorite")
         .select("productId")
         .eq("customerId", customerId)
@@ -1208,8 +1224,8 @@ export const dbService = {
       await (prisma as any).stockAlert.create({ data: formatted });
       return true;
     }
-    if (supabase) {
-      const { error } = await supabase!.from("StockAlert").insert([formatted]);
+    if (db) {
+      const { error } = await db!.from("StockAlert").insert([formatted]);
       if (error && error.code !== '23505') throw error;
       return true;
     }
@@ -1233,7 +1249,7 @@ export const dbService = {
         return history.map((h: any) => ({ ...h, price: Number(h.price), promoPrice: h.promoPrice ? Number(h.promoPrice) : null }));
       },
       async () => {
-        const { data, error } = await supabase!
+        const { data, error } = await db!
           .from("PriceHistory")
           .select("*")
           .eq("productId", productId)
@@ -1259,8 +1275,8 @@ export const dbService = {
       await (prisma as any).priceHistory.create({ data: formatted });
       return true;
     }
-    if (supabase) {
-      await supabase!.from("PriceHistory").insert([formatted]);
+    if (db) {
+      await db!.from("PriceHistory").insert([formatted]);
       return true;
     }
     sessionPriceHistory.push(formatted);
@@ -1275,8 +1291,8 @@ export const dbService = {
       });
       return;
     }
-    if (supabase) {
-      const { error } = await supabase.from("AdminUser").update({ id: newId }).eq("id", oldId);
+    if (db) {
+      const { error } = await db.from("AdminUser").update({ id: newId }).eq("id", oldId);
       if (error) throw error;
     }
   },
