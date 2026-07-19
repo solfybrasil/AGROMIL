@@ -1,28 +1,26 @@
-import prisma from "./prisma";
-import { supabase, db } from "./supabase";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import prisma from "./prisma"; // kept for type-checking only — never called at runtime (hasPrismaUrl = false)
+import { db } from "./supabase";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_ORDERS } from "./mocks";
 
-// Prisma only works in environments with persistent TCP connections (local dev).
-// On serverless (Netlify), we always go straight to Supabase REST.
-const isServerless = process.env.NETLIFY === "true" || process.env.VERCEL === "1";
 
-const hasPrismaUrl = !!(
-  !isServerless &&
-  typeof process !== "undefined" &&
-  process.env.DATABASE_URL &&
-  !process.env.DATABASE_URL.includes("localhost:51213") &&
-  !process.env.DATABASE_URL.includes("[SUA-SENHA]") &&
-  !process.env.DATABASE_URL.includes("[YOUR-PASSWORD]")
-);
+// ─── Prisma is DISABLED for runtime queries ───────────────────────────────────
+// Direct TCP connections to Supabase PostgreSQL always time out (55s+) because
+// Supabase requires the connection pooler (port 6543), not direct DB (port 5432).
+// All runtime data access goes through Supabase REST API (supabase-js) which is
+// instant and works in every environment (local, serverless, edge).
+//
+// Prisma is kept only for: schema management and migrations (prisma generate / migrate).
+// ─────────────────────────────────────────────────────────────────────────────────
+
+const hasPrismaUrl = false; // Always disabled — use Supabase REST instead
 
 // Log connection mode on server startup
 if (typeof window === "undefined") {
-  if (hasPrismaUrl) {
-    console.info("[db-service] Mode: Prisma (direct TCP)");
-  } else if (db) {
-    console.info("[db-service] Mode: Supabase REST");
+  if (db) {
+    console.info("[db-service] ✅ Mode: Supabase REST");
   } else {
-    console.warn("[db-service] Mode: LOCAL MOCK — configure env vars!");
+    console.warn("[db-service] ⚠️  Mode: LOCAL MOCK — configure SUPABASE env vars!");
   }
 }
 
