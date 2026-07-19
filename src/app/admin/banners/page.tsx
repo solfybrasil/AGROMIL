@@ -20,10 +20,7 @@ interface Banner {
   displayOrder: number;
 }
 
-const DEFAULT_BANNERS: Banner[] = [
-  { id: "b-1", title: "Frete Grátis acima de R$ 150", subtitle: "Para todo o interior de Itu", imageUrl: null, linkUrl: "/", linkLabel: "Comprar Agora", bgColor: "#1b4332", textColor: "#ffffff", active: true, displayOrder: 1 },
-  { id: "b-2", title: "Ração Golden com 15% OFF", subtitle: "Válido até o fim do estoque", imageUrl: null, linkUrl: "/categoria/petshop", linkLabel: "Ver Ofertas", bgColor: "#92400e", textColor: "#ffffff", active: true, displayOrder: 2 },
-];
+
 
 const PRESET_BG = ["#1b4332", "#2d6a4f", "#134e4a", "#92400e", "#1e3a5f", "#7c2d12", "#1f2937", "#e2b13c"];
 const PRESET_TEXT = ["#ffffff", "#f9faf9", "#1b4332", "#1f2937", "#e2b13c"];
@@ -67,10 +64,10 @@ export default function AdminBanners() {
   const fetchBanners = async () => {
     try {
       const res = await fetch("/api/banners/all");
-      if (res.ok) { setBanners(await res.json()); }
-      else { setBanners(DEFAULT_BANNERS); }
-    } catch { setBanners(DEFAULT_BANNERS); }
-    finally { setLoading(false); }
+      if (res.ok) setBanners(await res.json());
+    } catch (err) {
+      console.warn("Banners API offline.", err);
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchBanners(); }, []);
@@ -97,10 +94,10 @@ export default function AdminBanners() {
         const res = await fetch("/api/banners", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         if (res.ok) { const created = await res.json(); setBanners([...banners, created]); showMsg("Banner cadastrado com sucesso."); resetForm(); return; }
       }
-    } catch {}
-    const mockResult: Banner = { id: editingId || `mock-b-${Date.now()}`, title, subtitle: subtitle || null, imageUrl: imageUrl || null, linkUrl: linkUrl || null, linkLabel: linkLabel || null, bgColor, textColor, active, displayOrder: Number(displayOrder) };
-    if (editingId) { setBanners(banners.map(b => b.id === editingId ? mockResult : b)); } else { setBanners([...banners, mockResult]); }
-    showMsg("Salvo localmente (Modo Demo)."); resetForm();
+    } catch (err) {
+      console.warn("Error saving banner.", err);
+      showMsg("Erro de conexão ao salvar banner.", true);
+    }
   };
 
   const handleEditClick = (b: Banner) => {

@@ -33,35 +33,7 @@ interface Slide {
   overlayColor: string;
 }
 
-const DEFAULT_SLIDES: Slide[] = [
-  {
-    title: "Festival de Jardinagem",
-    subtitle: "Até 20% de Desconto em adubos orgânicos, vasos auto-irrigáveis e sementes selecionadas.",
-    buttonText: "Ver Jardinagem",
-    buttonLink: "/categoria/jardinagem",
-    imageUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?q=80&w=1600&auto=format&fit=crop",
-    badge: "Oferta Especial",
-    overlayColor: "#1b4332",
-  },
-  {
-    title: "Rações Premium & Pet Shop",
-    subtitle: "Nutrição e saúde para o seu pet com entrega rápida em Itu/SP. As melhores marcas.",
-    buttonText: "Ver Pet Shop",
-    buttonLink: "/categoria/petshop",
-    imageUrl: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=1600&auto=format&fit=crop",
-    badge: "Novidades Pet",
-    overlayColor: "#2d4a3e",
-  },
-  {
-    title: "Ferramentas Rurais Tramontina",
-    subtitle: "Facilite sua poda, plantio e colheita com ferramentas de aço temperado de alta qualidade.",
-    buttonText: "Ver Ferramentas",
-    buttonLink: "/categoria/ferramentas",
-    imageUrl: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?q=80&w=1600&auto=format&fit=crop",
-    badge: "Alta Durabilidade",
-    overlayColor: "#1a2f23",
-  },
-];
+
 
 const PRESET_COLORS = [
   { label: "Verde Floresta", value: "#1b4332" },
@@ -85,6 +57,16 @@ const IMAGE_PRESETS = [
   { label: "🐄 Gado", thumb: "https://images.unsplash.com/photo-1510177598631-55a4ab0a5cdb?q=80&w=400&auto=format&fit=crop", full: "https://images.unsplash.com/photo-1510177598631-55a4ab0a5cdb?q=80&w=1600&auto=format&fit=crop" },
 ];
 
+const BLANK_SLIDE: Slide = {
+  title: "",
+  subtitle: "",
+  buttonText: "Ver Produtos",
+  buttonLink: "/",
+  imageUrl: IMAGE_PRESETS[0]?.full ?? "",
+  badge: "",
+  overlayColor: "#1b4332",
+};
+
 function FieldLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">
@@ -105,7 +87,7 @@ function SectionDivider({ title }: { title: string }) {
 }
 
 export default function AdminHeroPage() {
-  const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
+  const [slides, setSlides] = useState<Slide[]>([{ ...BLANK_SLIDE }]);
   const [saved, setSaved] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(0);
   const [editingIdx, setEditingIdx] = useState<number>(0);
@@ -115,7 +97,10 @@ export default function AdminHeroPage() {
   useEffect(() => {
     const stored = localStorage.getItem("agromil_hero_slides");
     if (stored) {
-      try { setSlides(JSON.parse(stored)); } catch {}
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) setSlides(parsed);
+      } catch {}
     }
   }, []);
 
@@ -129,9 +114,9 @@ export default function AdminHeroPage() {
   };
 
   const handleReset = () => {
-    if (confirm("Restaurar slides padrão? Suas edições serão perdidas.")) {
+    if (confirm("Limpar todos os slides? Esta ação não pode ser desfeita.")) {
       localStorage.removeItem("agromil_hero_slides");
-      setSlides(DEFAULT_SLIDES);
+      setSlides([{ ...BLANK_SLIDE }]);
       setEditingIdx(0);
       setPreviewIdx(0);
     }

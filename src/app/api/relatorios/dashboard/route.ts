@@ -36,6 +36,32 @@ export async function GET() {
       }),
     }));
 
+    // 3. Calculate weekly sales trend (last 7 days faturamento)
+    const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const last7Days: { day: string; dateStr: string; value: number }[] = [];
+    const now = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dayLabel = daysOfWeek[d.getDay()];
+      const dateKey = d.toDateString();
+      last7Days.push({
+        day: dayLabel,
+        dateStr: dateKey,
+        value: 0
+      });
+    }
+
+    activeOrders.forEach((o) => {
+      const orderDate = new Date(o.createdAt);
+      const orderDateKey = orderDate.toDateString();
+      const match = last7Days.find((day) => day.dateStr === orderDateKey);
+      if (match) {
+        match.value += Number(o.total);
+      }
+    });
+
     return NextResponse.json({
       stats: {
         totalRevenue,
@@ -45,6 +71,10 @@ export async function GET() {
       },
       recentOrders,
       lowStockProducts,
+      salesTrend: last7Days.map((day) => ({
+        day: day.day,
+        value: day.value,
+      })),
     });
   } catch (error) {
     console.error("GET /api/relatorios/dashboard error:", error);

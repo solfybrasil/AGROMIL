@@ -18,11 +18,7 @@ interface Coupon {
   expiresAt: string | null;
 }
 
-const DEFAULT_COUPONS: Coupon[] = [
-  { id: "c-1", code: "WELCOME10", type: "percent", value: 10, minOrder: 0, maxUses: 100, usedCount: 12, active: true, expiresAt: null },
-  { id: "c-2", code: "AGRO20", type: "fixed", value: 20, minOrder: 100, maxUses: 50, usedCount: 5, active: true, expiresAt: null },
-  { id: "c-3", code: "FRETEGRATIS", type: "fixed", value: 15, minOrder: 150, maxUses: 200, usedCount: 89, active: false, expiresAt: "2026-06-01" },
-];
+
 
 function SectionDivider({ number, title }: { number: string; title: string }) {
   return (
@@ -54,10 +50,10 @@ export default function AdminCoupons() {
   const fetchCoupons = async () => {
     try {
       const res = await fetch("/api/cupom");
-      if (res.ok) { setCoupons(await res.json()); }
-      else { setCoupons(DEFAULT_COUPONS); }
-    } catch { setCoupons(DEFAULT_COUPONS); }
-    finally { setLoading(false); }
+      if (res.ok) setCoupons(await res.json());
+    } catch (err) {
+      console.warn("Coupons API offline.", err);
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchCoupons(); }, []);
@@ -96,10 +92,10 @@ export default function AdminCoupons() {
         else { setCoupons([...coupons, result]); showMsg("Cupom cadastrado!"); }
         resetForm(); return;
       }
-    } catch {}
-    const mock: Coupon = { id: editingId || `c-${Date.now()}`, code: code.toUpperCase(), type, value: Number(value), minOrder: Number(minOrder), maxUses: maxUses ? Number(maxUses) : null, usedCount: editingId ? coupons.find(c => c.id === editingId)?.usedCount || 0 : 0, active, expiresAt: expiresAt || null };
-    if (editingId) { setCoupons(coupons.map(c => c.id === editingId ? mock : c)); } else { setCoupons([...coupons, mock]); }
-    showMsg("Salvo localmente (Modo Demo)."); resetForm();
+    } catch (err) {
+      console.warn("Error saving coupon.", err);
+      showMsg("Erro de conexão ao salvar cupom.", true);
+    }
   };
 
   const handleEditClick = (c: Coupon) => {

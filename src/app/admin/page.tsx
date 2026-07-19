@@ -62,16 +62,6 @@ interface SalesTrend {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const DEFAULT_SALES_TREND: SalesTrend[] = [
-  { day: "Seg", value: 340.5 },
-  { day: "Ter", value: 580.0 },
-  { day: "Qua", value: 412.8 },
-  { day: "Qui", value: 920.1 },
-  { day: "Sex", value: 1120.4 },
-  { day: "Sáb", value: 780.0 },
-  { day: "Dom", value: 310.2 },
-];
-
 const QUICK_ACTIONS = [
   { label: "Novo Produto", icon: ShoppingBag, href: "/admin/produtos/novo", color: "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white" },
   { label: "Pedidos", icon: ClipboardList, href: "/admin/pedidos", color: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-600 hover:text-white" },
@@ -111,26 +101,15 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
-    totalRevenue: 28340.7,
-    ordersCount: 207,
-    productsCount: 11,
-    lowStockCount: 2,
+    totalRevenue: 0,
+    ordersCount: 0,
+    productsCount: 0,
+    lowStockCount: 0,
   });
 
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([
-    { id: "AGR-1002", clientName: "José da Silva",  total: 189.8,  status: "NEW",       createdAt: "15/07/2026 09:30" },
-    { id: "AGR-1001", clientName: "Maria de Souza", total: 110.0,  status: "PREPARING", createdAt: "14/07/2026 15:45" },
-    { id: "AGR-0999", clientName: "Carlos Antunes", total: 78.0,   status: "DELIVERED", createdAt: "12/07/2026 11:20" },
-    { id: "AGR-0998", clientName: "Ana Ferreira",   total: 234.5,  status: "SHIPPED",   createdAt: "11/07/2026 08:10" },
-  ]);
-
-  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([
-    { id: "m-8", name: "Pulverizador Costal Guarany 20L",   stock: 4, unit: "Unidade"   },
-    { id: "m-4", name: "Ração Premium Adultos Frango 15kg", stock: 8, unit: "Saco 15kg" },
-    { id: "m-6", name: "Sal Mineral 80 Fósforo 25kg",       stock: 2, unit: "Saco 25kg" },
-  ]);
-
-  const [salesTrend, setSalesTrend] = useState<SalesTrend[]>(DEFAULT_SALES_TREND);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
+  const [salesTrend, setSalesTrend] = useState<SalesTrend[]>([]);
   const [hoveredPoint, setHoveredPoint] = useState<{ day: string; value: number; x: number; y: number } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -148,7 +127,7 @@ export default function AdminDashboard() {
         setLastUpdated(new Date());
       }
     } catch (err) {
-      console.warn("Dashboard fetch failed, using demo data.", err);
+      console.warn("Dashboard fetch failed.", err);
     } finally {
       if (showRefresh) setIsRefreshing(false);
     }
@@ -160,16 +139,17 @@ export default function AdminDashboard() {
   const chartW = 500;
   const chartH = 160;
   const pad = 28;
-  const maxVal = Math.max(...salesTrend.map((t) => t.value), 1);
-  const pts = salesTrend.map((t, i) => ({
-    x: pad + (i / (salesTrend.length - 1)) * (chartW - pad * 2),
+  const hasTrend = salesTrend && salesTrend.length > 0;
+  const maxVal = hasTrend ? Math.max(...salesTrend.map((t) => t.value), 1) : 1;
+  const pts = hasTrend ? salesTrend.map((t, i) => ({
+    x: pad + (i / Math.max(1, salesTrend.length - 1)) * (chartW - pad * 2),
     y: chartH - pad - (t.value / maxVal) * (chartH - pad * 2),
     ...t,
-  }));
+  })) : [];
   const lineD = pts.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "");
-  const areaD = `${lineD} L ${pts[pts.length - 1].x} ${chartH - pad} L ${pts[0].x} ${chartH - pad} Z`;
+  const areaD = pts.length > 0 ? `${lineD} L ${pts[pts.length - 1].x} ${chartH - pad} L ${pts[0].x} ${chartH - pad} Z` : "";
   const weekTotal = salesTrend.reduce((a, t) => a + t.value, 0);
-  const maxDay = salesTrend.reduce((a, b) => (b.value > a.value ? b : a), salesTrend[0]);
+  const maxDay = hasTrend ? salesTrend.reduce((a, b) => (b.value > a.value ? b : a), salesTrend[0]) : null;
 
   const now = new Date();
   const hour = now.getHours();

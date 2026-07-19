@@ -10,14 +10,7 @@ interface Category {
   displayOrder: number;
 }
 
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: "m-cat-1", name: "Jardinagem", slug: "jardinagem", displayOrder: 1 },
-  { id: "m-cat-2", name: "Pet Shop", slug: "petshop", displayOrder: 2 },
-  { id: "m-cat-3", name: "Agropecuária Geral", slug: "agropecuaria", displayOrder: 3 },
-  { id: "m-cat-4", name: "Ferramentas", slug: "ferramentas", displayOrder: 4 },
-  { id: "m-cat-5", name: "Irrigação", slug: "irrigacao", displayOrder: 5 },
-  { id: "m-cat-6", name: "Vestuário & EPI", slug: "vestuario-epi", displayOrder: 6 },
-];
+
 
 export default function AdminCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -35,13 +28,9 @@ export default function AdminCategories() {
     const fetchCategories = async () => {
       try {
         const res = await fetch("/api/categorias");
-        if (res.ok) {
-          const data = await res.json();
-          setCategories(data);
-        }
+        if (res.ok) setCategories(await res.json());
       } catch (err) {
-        console.warn("Categories API offline. Using local state fallback.", err);
-        setCategories(DEFAULT_CATEGORIES);
+        console.warn("Categories API offline.", err);
       } finally {
         setLoading(false);
       }
@@ -114,28 +103,8 @@ export default function AdminCategories() {
         }
       }
     } catch (err) {
-      console.warn("Could not save to DB via API. Applying changes locally for demo.", err);
-    }
-
-    // Fallback Mock save
-    if (editingId) {
-      setCategories(
-        categories.map((c) =>
-          c.id === editingId
-            ? { ...c, name, slug, displayOrder: Number(displayOrder) }
-            : c
-        )
-      );
-      setMessage("Categoria atualizada localmente (Modo Demo).");
-    } else {
-      const newCat: Category = {
-        id: "m-cat-" + Math.floor(100 + Math.random() * 900),
-        name,
-        slug,
-        displayOrder: Number(displayOrder),
-      };
-      setCategories([...categories, newCat]);
-      setMessage("Categoria criada localmente (Modo Demo).");
+      console.warn("Could not save to DB via API.", err);
+      setErrMessage("Erro de conexão ao salvar. Tente novamente.");
     }
     resetForm();
   };
@@ -157,16 +126,15 @@ export default function AdminCategories() {
       if (res.ok) {
         setCategories(categories.filter((c) => c.id !== id));
         setMessage("Categoria excluída com sucesso.");
+        if (editingId === id) resetForm();
         return;
+      } else {
+        setErrMessage("Erro ao excluir categoria no servidor.");
       }
     } catch (err) {
-      console.warn("Could not delete from DB. Applying locally.", err);
+      console.warn("Could not delete from DB.", err);
+      setErrMessage("Erro de conexão ao excluir. Tente novamente.");
     }
-
-    // Fallback Mock delete
-    setCategories(categories.filter((c) => c.id !== id));
-    setMessage("Categoria excluída localmente (Modo Demo).");
-    if (editingId === id) resetForm();
   };
 
   const resetForm = () => {

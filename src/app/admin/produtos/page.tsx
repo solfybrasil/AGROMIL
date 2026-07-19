@@ -38,14 +38,7 @@ interface Category {
   name: string;
 }
 
-const DEFAULT_PRODUCTS: Product[] = [
-  { id: "m-1", name: "Adubo Orgânico Concentrado Húmus de Minhoca 5kg", sku: "JAD-001", price: 24.90, promoPrice: 19.90, stock: 35, unit: "Saco 5kg", active: true, categoryId: "jardinagem", images: [] },
-  { id: "m-2", name: "Vaso Auto-irrigável Gourmet N03 Verde Floresta", sku: "JAD-002", price: 32.90, promoPrice: null, stock: 20, unit: "Unidade", active: true, categoryId: "jardinagem", images: [] },
-  { id: "m-3", name: "Pá de Mão Estreita Tramontina em Aço", sku: "JAD-003", price: 15.50, promoPrice: null, stock: 50, unit: "Unidade", active: true, categoryId: "jardinagem", images: [] },
-  { id: "m-4", name: "Ração Premium Especial Cães Adultos Frango 15kg", sku: "PET-001", price: 189.90, promoPrice: 169.90, stock: 15, unit: "Saco 15kg", active: true, categoryId: "petshop", images: [] },
-  { id: "m-5", name: "Antipulgas e Carrapatos Simparic 20mg", sku: "PET-002", price: 94.50, promoPrice: null, stock: 45, unit: "Caixa 1 Comp.", active: true, categoryId: "petshop", images: [] },
-  { id: "m-6", name: "Sal Mineral 80 Fosforo para Bovinos 25kg", sku: "AGR-001", price: 110.00, promoPrice: null, stock: 8, unit: "Saco 25kg", active: true, categoryId: "agropecuaria", images: [] },
-];
+
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -60,24 +53,14 @@ export default function AdminProducts() {
   // Fetch data
   const fetchData = async () => {
     try {
-      // Products
-      const prodRes = await fetch("/api/produtos");
-      if (prodRes.ok) {
-        const prodData = await prodRes.json();
-        setProducts(prodData);
-      } else {
-        setProducts(DEFAULT_PRODUCTS);
-      }
-
-      // Categories
-      const catRes = await fetch("/api/categorias");
-      if (catRes.ok) {
-        const catData = await catRes.json();
-        setCategories(catData);
-      }
+      const [prodRes, catRes] = await Promise.all([
+        fetch("/api/produtos"),
+        fetch("/api/categorias"),
+      ]);
+      if (prodRes.ok) setProducts(await prodRes.json());
+      if (catRes.ok) setCategories(await catRes.json());
     } catch (err) {
-      console.warn("API offline. Using fallbacks.", err);
-      setProducts(DEFAULT_PRODUCTS);
+      console.warn("API offline.", err);
     } finally {
       setLoading(false);
     }
