@@ -304,7 +304,7 @@ function OrderTrackingPageInner({ params }: OrderTrackingPageProps) {
                           isDone
                             ? "bg-primary shadow-sm"
                             : isActive
-                            ? `${step.bg} ring-2 ${step.ring} ring-offset-2 shadow-md`
+                            ? `${step.bg} ring-2 ${step.ring} ring-offset-2 shadow-md animate-active-pulse`
                             : "bg-gray-100"
                         }`}
                       >
@@ -312,7 +312,13 @@ function OrderTrackingPageInner({ params }: OrderTrackingPageProps) {
                           <CheckCircle2 className="h-5 w-5 text-white" />
                         ) : (
                           <StepIcon
-                            className={`h-5 w-5 ${isActive ? step.color : "text-gray-300"} ${isActive ? "animate-pulse" : ""}`}
+                            className={`h-5 w-5 ${isActive ? step.color : "text-gray-300"} ${
+                              isActive
+                                ? step.key === "SHIPPED"
+                                  ? "animate-truck-drive"
+                                  : "animate-pulse"
+                                : ""
+                            }`}
                           />
                         )}
                       </div>
@@ -320,7 +326,7 @@ function OrderTrackingPageInner({ params }: OrderTrackingPageProps) {
                       {!isLast && (
                         <div
                           className={`w-0.5 flex-1 my-1 transition-colors duration-500 ${
-                            isDone ? "bg-primary" : "bg-gray-200"
+                            isDone ? "bg-primary" : isActive ? "bg-gradient-to-b from-primary to-gray-200 animate-pulse" : "bg-gray-200"
                           }`}
                           style={{ minHeight: "28px" }}
                         />

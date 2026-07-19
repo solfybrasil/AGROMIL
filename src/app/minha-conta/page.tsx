@@ -155,7 +155,7 @@ export default function AccountDashboard() {
 
               <div className="pt-2">
                 <Link
-                  href={`/minha-conta/pedidos/${latestOrder.id}`}
+                  href={`/pedidos/${latestOrder.id}`}
                   className="w-full inline-flex items-center justify-center gap-1.5 bg-gray-50 hover:bg-primary hover:text-white transition-all text-gray-600 font-bold text-[10px] py-2 rounded-xl"
                 >
                   <span>Detalhes do Rastreamento</span>

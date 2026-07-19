@@ -43,6 +43,7 @@ let sessionBanners: any[] = [
 let sessionStockAlerts: any[] = [];
 let sessionPriceHistory: any[] = [];
 let sessionSubscriptions: any[] = [];
+let sessionLoyaltyTransactions: any[] = [];
 
 async function executeQuery<T>(
   prismaFn: () => Promise<T>,
@@ -460,14 +461,17 @@ export const dbService = {
   },
 
   async updateOrderStatus(orderId: string, status: string) {
+    const currentOrder = await this.getOrderById(orderId);
+    if (!currentOrder) return null;
+
+    let updated: any = null;
+
     if (hasPrismaUrl) {
-      const updated = await prisma.order.update({
+      updated = await prisma.order.update({
         where: { id: orderId },
         data: { status: status as any },
       });
-      return updated;
-    }
-    if (db) {
+    } else if (db) {
       const { data, error } = await db!
         .from("Order")
         .update({ status, updatedAt: new Date().toISOString() })
@@ -475,14 +479,47 @@ export const dbService = {
         .select()
         .single();
       if (error) throw error;
-      return data;
+      updated = data;
+    } else {
+      const index = sessionOrders.findIndex((o) => o.id === orderId);
+      if (index > -1) {
+        sessionOrders[index] = { ...sessionOrders[index], status: status as any };
+        updated = sessionOrders[index];
+      }
     }
-    const index = sessionOrders.findIndex((o) => o.id === orderId);
-    if (index > -1) {
-      sessionOrders[index] = { ...sessionOrders[index], status: status as any };
-      return sessionOrders[index];
+
+    // Loyalty points history logic
+    if (updated && currentOrder.customerId) {
+      // 1. Earn points if status is set to DELIVERED
+      if (status === "DELIVERED" && currentOrder.status !== "DELIVERED") {
+        const transactions = await this.getLoyaltyTransactionsByOrder(orderId);
+        const totalPoints = transactions.reduce((sum: number, t: any) => sum + (t.points ?? 0), 0);
+        if (totalPoints <= 0) {
+          await this.createLoyaltyTransaction({
+            customerId: currentOrder.customerId,
+            orderId,
+            points: 120,
+            description: `Pontos acumulados no pedido #${orderId.substring(orderId.length - 8).toUpperCase()}`
+          });
+        }
+      }
+
+      // 2. Revert points if status changes from DELIVERED to something else
+      if (status !== "DELIVERED" && currentOrder.status === "DELIVERED") {
+        const transactions = await this.getLoyaltyTransactionsByOrder(orderId);
+        const totalPoints = transactions.reduce((sum: number, t: any) => sum + (t.points ?? 0), 0);
+        if (totalPoints > 0) {
+          await this.createLoyaltyTransaction({
+            customerId: currentOrder.customerId,
+            orderId,
+            points: -120,
+            description: `Estorno de pontos (pedido alterado para ${status}) #${orderId.substring(orderId.length - 8).toUpperCase()}`
+          });
+        }
+      }
     }
-    return null;
+
+    return updated;
   },
 
   // ==========================================
@@ -735,6 +772,24 @@ export const dbService = {
         return data;
       },
       sessionCustomers.find((c) => c.id === id) || null
+    );
+  },
+
+  async getCustomerByUserId(userId: string) {
+    return executeQuery(
+      async () => {
+        return await (prisma.customer as any).findFirst({ where: { userId } });
+      },
+      async () => {
+        const { data, error } = await db!
+          .from("Customer")
+          .select("*")
+          .eq("userId", userId)
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      },
+      sessionCustomers.find((c: any) => c.userId === userId) || null
     );
   },
 
@@ -1301,6 +1356,76 @@ export const dbService = {
     }
     sessionPriceHistory.push(formatted);
     return true;
+  },
+
+  // ══════════════════════════════════════════════
+  //  LOYALTY TRANSACTIONS
+  // ══════════════════════════════════════════════
+  async createLoyaltyTransaction(data: {
+    customerId: string;
+    orderId: string;
+    points: number;
+    description: string;
+  }) {
+    const record = {
+      id: Math.random().toString(36).substring(2, 18),
+      customerId: data.customerId,
+      orderId: data.orderId,
+      points: data.points,
+      description: data.description,
+      createdAt: new Date().toISOString(),
+    };
+    if (hasPrismaUrl) {
+      await (prisma as any).loyaltyTransaction.create({ data: record });
+      return record;
+    }
+    if (db) {
+      const { data: inserted, error } = await db!
+        .from("LoyaltyTransaction")
+        .insert([record])
+        .select()
+        .single();
+      if (error) throw error;
+      return inserted;
+    }
+    sessionLoyaltyTransactions.push(record);
+    return record;
+  },
+
+  async getLoyaltyTransactionsByOrder(orderId: string) {
+    if (hasPrismaUrl) {
+      return (prisma as any).loyaltyTransaction.findMany({ where: { orderId } });
+    }
+    if (db) {
+      const { data, error } = await db!
+        .from("LoyaltyTransaction")
+        .select("*")
+        .eq("orderId", orderId);
+      if (error) throw error;
+      return data ?? [];
+    }
+    return sessionLoyaltyTransactions.filter((t) => t.orderId === orderId);
+  },
+
+  async getLoyaltyTransactionsByCustomer(customerId: string) {
+    if (hasPrismaUrl) {
+      return (prisma as any).loyaltyTransaction.findMany({
+        where: { customerId },
+        orderBy: { createdAt: "desc" },
+      });
+    }
+    if (db) {
+      const { data, error } = await db!
+        .from("LoyaltyTransaction")
+        .select("*")
+        .eq("customerId", customerId)
+        .order("createdAt", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    }
+    return sessionLoyaltyTransactions
+      .filter((t) => t.customerId === customerId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   async updateAdminUserId(oldId: string, newId: string) {

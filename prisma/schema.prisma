@@ -74,22 +74,33 @@ model Order {
 }
 
 model Customer {
-  id           String    @id @default(uuid())
-  name         String
-  email        String    @unique
-  password     String
-  phone        String
-  street       String
-  number       String
-  complement   String?
-  neighborhood String
-  city         String    @default("Itu")
-  state        String    @default("SP")
-  zipCode      String
-  planType     String    @default("COMUM")
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  orders       Order[]
+  id                  String               @id @default(uuid())
+  name                String
+  email               String               @unique
+  password            String
+  phone               String
+  street              String
+  number              String
+  complement          String?
+  neighborhood        String
+  city                String               @default("Itu")
+  state               String               @default("SP")
+  zipCode             String
+  planType            String               @default("COMUM")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  orders              Order[]
+  loyaltyTransactions LoyaltyTransaction[]
+}
+
+model LoyaltyTransaction {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orderId     String?
+  points      Int
+  description String
+  createdAt   DateTime @default(now())
 }
 
 enum OrderStatus {

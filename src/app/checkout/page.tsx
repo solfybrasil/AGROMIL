@@ -271,6 +271,13 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const outOfStockItem = items.find(item => item.product.stock <= 0);
+    if (outOfStockItem) {
+      alert(`O produto "${outOfStockItem.product.name}" está temporariamente sem estoque.`);
+      return;
+    }
+
     setSubmitting(true);
 
     const orderData = {

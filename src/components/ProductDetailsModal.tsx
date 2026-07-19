@@ -149,34 +149,45 @@ export default function ProductDetailsModal() {
 
         {/* Persistent Bottom Bar (iFood style footer: Quantity selector + Add to cart btn) */}
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 flex items-center justify-between gap-4 z-20 shadow-lg">
-          {/* Quantity Selector */}
-          <div className="flex items-center border border-gray-300 rounded-xl bg-white h-12 shadow-2xs">
-            <button
-              onClick={handleDecrease}
-              className="px-4 h-full text-gray-500 hover:text-primary transition-colors border-r border-gray-250 active:bg-gray-50"
-              title="Diminuir"
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="w-10 text-center text-sm font-black text-gray-800">
-              {quantity}
-            </span>
-            <button
-              onClick={handleIncrease}
-              className="px-4 h-full text-gray-500 hover:text-primary transition-colors border-l border-gray-250 active:bg-gray-50"
-              title="Aumentar"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </div>
+          {/* Quantity Selector or Stock Warning */}
+          {product.stock > 0 ? (
+            <div className="flex items-center border border-gray-300 rounded-xl bg-white h-12 shadow-2xs">
+              <button
+                onClick={handleDecrease}
+                className="px-4 h-full text-gray-500 hover:text-primary transition-colors border-r border-gray-250 active:bg-gray-50"
+                title="Diminuir"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="w-10 text-center text-sm font-black text-gray-800">
+                {quantity}
+              </span>
+              <button
+                onClick={handleIncrease}
+                className="px-4 h-full text-gray-500 hover:text-primary transition-colors border-l border-gray-250 active:bg-gray-50"
+                title="Aumentar"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="text-[10px] text-red-500 font-black uppercase tracking-wider bg-red-50 border border-red-200 px-4 py-2.5 rounded-xl">
+              Sem Estoque
+            </div>
+          )}
 
           {/* Add to Cart button */}
           <button
             onClick={handleAddToCart}
-            className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary-dark text-white font-extrabold text-xs sm:text-sm flex items-center justify-between px-6 shadow-md hover:shadow-lg transition-all active:scale-98"
+            disabled={product.stock <= 0}
+            className={`flex-1 h-12 rounded-xl text-white font-extrabold text-xs sm:text-sm flex items-center justify-between px-6 shadow-md transition-all ${
+              product.stock <= 0
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-primary hover:bg-primary-dark hover:shadow-lg active:scale-98"
+            }`}
           >
-            <span>Adicionar</span>
-            <span>R$ {totalPrice.toFixed(2)}</span>
+            <span>{product.stock <= 0 ? "Produto Indisponível" : "Adicionar"}</span>
+            {product.stock > 0 && <span>R$ {totalPrice.toFixed(2)}</span>}
           </button>
         </div>
 

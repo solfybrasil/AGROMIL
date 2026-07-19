@@ -77,6 +77,19 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+    // ── Validar estoque de cada item ──────────────────────────────
+    for (const item of items) {
+      const product = await dbService.getProductById(item.productId);
+      if (!product) {
+        return NextResponse.json({ error: "Produto não localizado." }, { status: 400 });
+      }
+      if (product.stock <= 0) {
+        return NextResponse.json(
+          { error: `O produto "${product.name}" está temporariamente sem estoque.` },
+          { status: 400 }
+        );
+      }
+    }
     // ─────────────────────────────────────────────────────────────
 
     const order = await dbService.createOrder(orderData, items);

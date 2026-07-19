@@ -115,12 +115,20 @@ export default function ProductCard({ product }: ProductCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              if (product.stock <= 0) return;
               if (mounted) addItem(product);
             }}
-            className="flex items-center justify-center gap-1 bg-primary hover:bg-[#1b4332] text-white rounded-lg p-2 sm:py-2 sm:px-3.5 shadow-xs transition-all active-pop flex-shrink-0"
+            disabled={product.stock <= 0}
+            className={`flex items-center justify-center gap-1 rounded-lg p-2 sm:py-2 sm:px-3.5 shadow-xs transition-all flex-shrink-0 ${
+              product.stock <= 0
+                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : "bg-primary hover:bg-[#1b4332] text-white active-pop"
+            }`}
           >
             <ShoppingCart className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline text-xs font-bold">Comprar</span>
+            <span className="hidden sm:inline text-xs font-bold">
+              {product.stock <= 0 ? "Esgotado" : "Comprar"}
+            </span>
           </button>
         </div>
       </div>

@@ -47,6 +47,7 @@ export const useCartStore = create<CartState>()(
       isProductModalOpen: false,
       
       addItem: (product, quantity = 1) => {
+        if (product.stock <= 0) return;
         const currentItems = get().items;
         const existingIndex = currentItems.findIndex(
           (item) => item.product.id === product.id
