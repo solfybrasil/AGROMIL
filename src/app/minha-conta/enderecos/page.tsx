@@ -3,24 +3,10 @@
 import { useEffect, useState } from "react";
 import { MapPin, Loader, CheckCircle, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-interface CustomerSession {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  street: string;
-  number: string;
-  complement?: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
-}
+import { useAccount } from "../layout";
 
 export default function AddressesPage() {
-  const [profile, setProfile] = useState<CustomerSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { session: profile, refreshSession } = useAccount();
   const [saving, setSaving] = useState(false);
 
   // Address form states
@@ -37,31 +23,16 @@ export default function AddressesPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const res = await fetch("/api/customer/me");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.session) {
-            setProfile(data.session);
-            setZipCode(data.session.zipCode);
-            setStreet(data.session.street);
-            setNumber(data.session.number);
-            setComplement(data.session.complement || "");
-            setNeighborhood(data.session.neighborhood);
-            setCity(data.session.city || "Itu");
-            setState(data.session.state || "SP");
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load profile:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, []);
+    if (profile) {
+      setZipCode(profile.zipCode);
+      setStreet(profile.street);
+      setNumber(profile.number);
+      setComplement(profile.complement || "");
+      setNeighborhood(profile.neighborhood);
+      setCity(profile.city || "Itu");
+      setState(profile.state || "SP");
+    }
+  }, [profile]);
 
   const handleZipCodeChange = async (cep: string) => {
     const cleaned = cep.replace(/\D/g, "");
@@ -119,6 +90,7 @@ export default function AddressesPage() {
 
       if (res.ok) {
         setSuccessMsg("Endereço atualizado com sucesso!");
+        await refreshSession();
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
@@ -132,13 +104,7 @@ export default function AddressesPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+  if (!profile) return null;
 
   return (
     <div className="space-y-6 font-sans text-xs">

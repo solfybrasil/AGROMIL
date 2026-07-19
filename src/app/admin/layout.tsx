@@ -291,23 +291,36 @@ export default function AdminLayout({
       {/* ══════════════════════════════════════════════
           DESKTOP SIDEBAR (hidden on mobile)
       ══════════════════════════════════════════════ */}
-      <aside className="hidden md:flex w-64 bg-gradient-to-b from-[#0a1912] via-[#091710] to-[#050e0a] text-white flex-col border-r border-emerald-950/20 flex-shrink-0 select-none shadow-2xl sticky top-0 h-screen overflow-hidden">
+      {/* Spacer estático para garantir estabilidade do layout na tela principal */}
+      <div className="hidden md:block w-[76px] flex-shrink-0 transition-all duration-300" />
+
+      <aside className="hidden md:flex fixed top-0 left-0 h-screen z-30 w-[76px] hover:w-64 sidebar-ease bg-gradient-to-b from-[#0a1912] via-[#091710] to-[#050e0a] text-white flex-col border-r border-emerald-950/20 flex-shrink-0 select-none shadow-2xl overflow-hidden group/sidebar">
         {/* Brand / Logo */}
-        <div className="p-5 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center bg-white rounded-2xl p-2 shadow-lg hover:scale-[1.02] transition-transform duration-300" style={{ maxWidth: "130px" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Agromil Logo" className="w-full h-auto object-contain" />
+        <div className="h-20 border-b border-white/5 flex items-center justify-center px-4.5 group-hover/sidebar:px-5 transition-all duration-300 select-none">
+          {/* Logo compacto (apenas folha) quando recolhido */}
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/10 to-primary/10 border border-emerald-500/20 text-emerald-400 group-hover/sidebar:hidden transition-all duration-300">
+            <Leaf className="h-5 w-5 fill-current animate-pulse" />
           </div>
-          <span className="text-[8px] font-black uppercase bg-[#e2b13c]/15 text-[#e2b13c] px-2 py-0.5 rounded border border-[#e2b13c]/20">
-            Pro
-          </span>
+          {/* Logo completo quando expandido */}
+          <div className="hidden group-hover/sidebar:flex items-center justify-between w-full animate-fade-in">
+            <div className="flex items-center bg-white rounded-xl p-1.5 shadow-lg hover:scale-[1.02] transition-transform duration-300" style={{ maxWidth: "115px" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Logo.png" alt="Agromil Logo" className="w-full h-auto object-contain" />
+            </div>
+            <span className="text-[8px] font-black uppercase bg-[#e2b13c]/15 text-[#e2b13c] px-2 py-0.5 rounded border border-[#e2b13c]/20 ml-2">
+              Pro
+            </span>
+          </div>
         </div>
 
         {/* Desktop Nav */}
         <nav className="flex-1 px-3 py-5 overflow-y-auto text-xs font-bold scrollbar-thin scrollbar-thumb-white/5 space-y-5">
           {menuGroups.map((group, gi) => (
             <div key={gi} className="space-y-1">
-              <h4 className="px-3 text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">
+              {/* Divisor simples quando colapsado */}
+              <div className="h-px bg-white/5 mx-1 my-3 group-hover/sidebar:hidden transition-all duration-300" />
+              {/* Título do grupo de menu quando expandido */}
+              <h4 className="hidden group-hover/sidebar:block px-3 text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2 transition-all duration-300 animate-fade-in">
                 {group.title}
               </h4>
               {group.items.map((item) => {
@@ -317,19 +330,23 @@ export default function AdminLayout({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 relative group overflow-hidden
+                    className={`flex items-center px-3.5 group-hover/sidebar:px-3 py-2.5 rounded-xl transition-all duration-200 relative group overflow-hidden
                       ${isActive
                         ? "bg-gradient-to-r from-primary to-[#2a684d] text-white shadow-lg shadow-primary/10"
                         : "text-gray-400 hover:text-white hover:bg-white/[0.03]"
                       }`}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="flex items-center gap-3 relative z-10">
-                      <Icon className={`h-4 w-4 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-emerald-300" : ""}`} />
-                      <span className="text-[11px] font-black">{item.label}</span>
+                    <div className="flex items-center gap-3 relative z-10 w-full">
+                      <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                        <Icon className={`h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-emerald-300" : ""}`} />
+                      </div>
+                      <span className="text-[11px] font-black opacity-0 group-hover/sidebar:opacity-100 transition-all duration-300 whitespace-nowrap overflow-hidden w-0 group-hover/sidebar:w-auto">
+                        {item.label}
+                      </span>
                     </div>
                     {isActive && (
-                      <span className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full bg-[#e2b13c]" />
+                      <span className="absolute left-0 top-1/4 bottom-1/4 w-[3.5px] rounded-r-full bg-[#e2b13c]" />
                     )}
                   </Link>
                 );
@@ -339,28 +356,32 @@ export default function AdminLayout({
         </nav>
 
         {/* Desktop Profile Footer */}
-        <div className="p-4 border-t border-white/5 bg-white/[0.01] flex items-center justify-between gap-3 select-none">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="p-3.5 group-hover/sidebar:p-4 border-t border-white/5 bg-white/[0.01] flex items-center justify-between gap-3 select-none transition-all duration-300">
+          <div className="flex items-center gap-2.5 min-w-0 w-full justify-center group-hover/sidebar:justify-start">
             <div className="relative flex-shrink-0">
               <div className="rounded-full bg-gradient-to-tr from-primary/30 to-emerald-500/30 border border-emerald-500/30 p-2 text-emerald-400">
-                <User className="h-4 w-4" />
+                <User className="h-4.5 w-4.5" />
               </div>
               <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border-2 border-[#0a1912] animate-pulse" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-black text-white truncate">{session.name}</p>
-              <span className="text-[8px] text-[#e2b13c] uppercase font-black tracking-widest mt-0.5 block">
+            
+            {/* Informações do usuário expandidas */}
+            <div className="min-w-0 opacity-0 group-hover/sidebar:opacity-100 w-0 group-hover/sidebar:w-auto transition-all duration-300 overflow-hidden flex-1">
+              <p className="text-[11px] font-black text-white truncate leading-none">{session.name}</p>
+              <span className="text-[8px] text-[#e2b13c] uppercase font-black tracking-widest mt-1 block leading-none">
                 {session.role === "admin" ? "Administrador" : "Operador"}
               </span>
             </div>
+
+            {/* Botão de Logout */}
+            <button
+              onClick={handleLogout}
+              className="hidden group-hover/sidebar:flex text-gray-400 hover:text-rose-400 p-2 rounded-xl hover:bg-white/5 transition-all duration-200 flex-shrink-0 cursor-pointer"
+              title="Sair da Conta"
+            >
+              <LogOut className="h-4.5 w-4.5" />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-gray-400 hover:text-rose-400 p-2 rounded-xl hover:bg-white/5 transition-all duration-200 flex-shrink-0 cursor-pointer"
-            title="Sair da Conta"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
         </div>
       </aside>
 

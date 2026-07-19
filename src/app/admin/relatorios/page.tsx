@@ -140,7 +140,7 @@ export default function AdminReports() {
         </div>
 
         {/* Period Selector */}
-        <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-2xl px-4 py-2.5 shadow-3xs flex-shrink-0 cursor-pointer hover:border-[#1b4332]/30 transition-all">
+        <div className="flex items-center gap-2.5 bg-white border border-gray-200 rounded-2xl px-4 py-2.5 shadow-3xs flex-shrink-0 cursor-pointer hover:border-[#1b4332]/30 hover-lift active-pop transition-all">
           <Calendar className="h-4 w-4 text-[#1b4332]" />
           <select
             value={period}
@@ -162,7 +162,7 @@ export default function AdminReports() {
           return (
             <div
               key={kpi.label}
-              className="bg-white rounded-3xl p-5 shadow-3xs border border-gray-100/80 space-y-3"
+              className="bg-white rounded-3xl p-5 shadow-3xs border border-gray-100/80 space-y-3 hover-lift cursor-default"
             >
               <div className="flex items-center gap-3">
                 <div

@@ -3,18 +3,10 @@
 import { useEffect, useState } from "react";
 import { User, Phone, Mail, ShieldAlert, Sparkles, Building2, Key, Loader, CheckCircle, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-interface CustomerSession {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  planType: string;
-}
+import { useAccount } from "../layout";
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<CustomerSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { session: profile, refreshSession } = useAccount();
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
@@ -35,27 +27,12 @@ export default function ProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const res = await fetch("/api/customer/me");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.session) {
-            setProfile(data.session);
-            setName(data.session.name);
-            setPhone(data.session.phone);
-            setPlanType(data.session.planType || "COMUM");
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load profile:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, []);
+    if (profile) {
+      setName(profile.name);
+      setPhone(profile.phone);
+      setPlanType(profile.planType || "COMUM");
+    }
+  }, [profile]);
 
   const handlePhoneChange = (val: string) => {
     let cleaned = val.replace(/\D/g, "");
@@ -86,6 +63,7 @@ export default function ProfilePage() {
 
       if (res.ok) {
         setProfileSuccess("Perfil atualizado com sucesso!");
+        await refreshSession();
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
@@ -139,14 +117,6 @@ export default function ProfilePage() {
       setSavingPassword(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
 
   if (!profile) return null;
 

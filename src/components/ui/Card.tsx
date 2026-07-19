@@ -36,9 +36,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-2xl transition-all duration-300",
+          "rounded-2xl",
           variants[variant],
-          hoverable && "hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
+          hoverable && "hover-lift cursor-pointer",
           !noPadding && "p-5",
           className
         )}
@@ -185,7 +185,7 @@ export function StatCard({
     <div
       className={cn(
         "relative overflow-hidden bg-white border border-gray-100 rounded-2xl p-4 md:p-5",
-        "shadow-xs hover:shadow-sm transition-all duration-300 hover:-translate-y-0.5 group cursor-default",
+        "hover-lift group cursor-default",
         className
       )}
     >

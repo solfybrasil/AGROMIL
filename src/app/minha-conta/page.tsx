@@ -3,21 +3,7 @@
 import { useEffect, useState } from "react";
 import { User, ClipboardList, MapPin, Award, ShoppingBag, ArrowRight, ShieldAlert, Sparkles, Building2, Package } from "lucide-react";
 import Link from "next/link";
-
-interface CustomerSession {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  planType: string;
-  street: string;
-  number: string;
-  complement?: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
-}
+import { useAccount } from "./layout";
 
 interface OrderSummary {
   id: string;
@@ -27,32 +13,24 @@ interface OrderSummary {
 }
 
 export default function AccountDashboard() {
-  const [profile, setProfile] = useState<CustomerSession | null>(null);
+  const { session: profile } = useAccount();
   const [latestOrder, setLatestOrder] = useState<OrderSummary | null>(null);
   const [orderCount, setOrderCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!profile) return;
     const loadDashboardData = async () => {
       try {
-        // 1. Get profile
-        const profileRes = await fetch("/api/customer/me");
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          if (profileData.session) {
-            setProfile(profileData.session);
-            
-            // 2. Fetch orders to show count and latest
-            const ordersRes = await fetch(`/api/customer/orders?customerId=${profileData.session.id}`);
-            if (ordersRes.ok) {
-              const orders = await ordersRes.json();
-              setOrderCount(orders.length);
-              if (orders.length > 0) {
-                // Sort by date desc
-                const sorted = orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                setLatestOrder(sorted[0]);
-              }
-            }
+        // Fetch orders directly since token session cookie is checked by API
+        const ordersRes = await fetch("/api/customer/orders");
+        if (ordersRes.ok) {
+          const orders = await ordersRes.json();
+          setOrderCount(orders.length);
+          if (orders.length > 0) {
+            // Sort by date desc
+            const sorted = orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            setLatestOrder(sorted[0]);
           }
         }
       } catch (err) {
@@ -63,15 +41,7 @@ export default function AccountDashboard() {
     };
 
     loadDashboardData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+  }, [profile]);
 
   if (!profile) {
     return (

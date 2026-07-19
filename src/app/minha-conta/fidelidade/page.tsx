@@ -2,33 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { Award, CheckCircle, Lock, Trophy, Sparkles, Building2 } from "lucide-react";
-
-interface CustomerSession {
-  id: string;
-  name: string;
-  planType: string;
-}
+import { useAccount } from "../layout";
 
 export default function LoyaltyPage() {
-  const [profile, setProfile] = useState<CustomerSession | null>(null);
+  const { session: profile } = useAccount();
   const [orderCount, setOrderCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!profile) return;
     const fetchLoyaltyData = async () => {
       try {
-        const profileRes = await fetch("/api/customer/me");
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          if (profileData.session) {
-            setProfile(profileData.session);
-            
-            const ordersRes = await fetch(`/api/customer/orders?customerId=${profileData.session.id}`);
-            if (ordersRes.ok) {
-              const orders = await ordersRes.json();
-              setOrderCount(orders.length);
-            }
-          }
+        const ordersRes = await fetch("/api/customer/orders");
+        if (ordersRes.ok) {
+          const orders = await ordersRes.json();
+          setOrderCount(orders.length);
         }
       } catch (err) {
         console.error("Failed to load loyalty details:", err);
@@ -38,7 +26,7 @@ export default function LoyaltyPage() {
     };
 
     fetchLoyaltyData();
-  }, []);
+  }, [profile]);
 
   if (loading) {
     return (

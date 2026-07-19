@@ -252,7 +252,7 @@ export default function AdminOrdersKanban() {
 
     return (
       <div
-        className={`bg-white rounded-xl md:rounded-2xl border p-3 md:p-4 shadow-xs transition-all flex flex-col gap-2.5 md:gap-3.5 relative overflow-hidden
+        className={`bg-white rounded-xl md:rounded-2xl border p-3 md:p-4 shadow-xs hover-lift flex flex-col gap-2.5 md:gap-3.5 relative overflow-hidden
           ${isUpdating ? "opacity-60 scale-[0.98] pointer-events-none" : ""}
           ${isNew ? "border-blue-300 ring-2 ring-blue-100" : "border-gray-100"}`}
       >

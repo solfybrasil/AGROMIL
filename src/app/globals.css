@@ -142,3 +142,9 @@ body {
 .active-pop:active {
   transform: scale(0.95);
 }
+
+/* Sidebar custom premium transition */
+.sidebar-ease {
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.35s ease;
+}
+

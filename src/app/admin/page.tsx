@@ -296,9 +296,9 @@ export default function AdminDashboard() {
             <Link
               key={action.href}
               href={action.href}
-              className={`flex flex-col items-center gap-1.5 md:gap-2 border rounded-xl md:rounded-2xl p-2.5 md:p-3.5 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm active:scale-95 ${action.color}`}
+              className={`flex flex-col items-center gap-1.5 md:gap-2 border rounded-xl md:rounded-2xl p-2.5 md:p-3.5 text-center hover-lift active-pop ${action.color}`}
             >
-              <action.icon className="h-4 w-4 md:h-5 md:w-5" />
+              <action.icon className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300 group-hover:scale-110" />
               <span className="text-[7px] md:text-[9px] font-black uppercase tracking-wide leading-tight">{action.label}</span>
             </Link>
           ))}
@@ -380,7 +380,7 @@ export default function AdminDashboard() {
             {/* Tooltip */}
             {hoveredPoint && (
               <div
-                className="absolute bg-gray-900/95 text-white rounded-xl px-3 py-2 text-[9px] font-black shadow-xl pointer-events-none border border-white/10 -translate-x-1/2 z-10"
+                className="absolute bg-gray-900/95 text-white rounded-xl px-3 py-2 text-[9px] font-black shadow-xl pointer-events-none border border-white/10 -translate-x-1/2 z-10 animate-scale-in"
                 style={{ left: `${(hoveredPoint.x / chartW) * 100}%`, top: `${Math.max(0, hoveredPoint.y - 50)}px` }}
               >
                 <span className="text-gray-400 uppercase text-[7px] font-bold block">{hoveredPoint.day}</span>
