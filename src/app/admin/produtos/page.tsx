@@ -88,7 +88,7 @@ export default function AdminProducts() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+    if (!confirm("Tem certeza que deseja excluir este produto? (O produto será removido do catálogo, mas o histórico de vendas passadas será preservado)")) return;
     setMessage("");
 
     try {
@@ -100,13 +100,8 @@ export default function AdminProducts() {
         setMessage("Produto excluído com sucesso.");
         return;
       } else {
-        if (data.error && (data.error.includes("foreign key") || data.error.includes("OrderItem") || data.error.includes("constraint"))) {
-          alert("Não é possível excluir este produto pois ele já foi vendido em pedidos anteriores (histórico de vendas). Para ocultá-lo da loja, basta desativar o produto no botão ao lado.");
-          setMessage("Erro: O produto possui histórico de vendas e não pode ser deletado.");
-        } else {
-          alert(`Erro ao excluir do banco de dados: ${data.error || "Erro inesperado"}`);
-          setMessage(`Erro ao excluir: ${data.error || "Erro no servidor"}`);
-        }
+        alert(`Erro ao excluir do banco de dados: ${data.error || "Erro inesperado"}`);
+        setMessage(`Erro ao excluir: ${data.error || "Erro no servidor"}`);
         return;
       }
     } catch (err) {
