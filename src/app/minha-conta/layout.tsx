@@ -6,7 +6,6 @@ import { User, ClipboardList, MapPin, Award, LogOut, Loader, LayoutDashboard, Ch
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import CategoryMenu from "@/components/CategoryMenu";
 
 export interface CustomerSession {
   id: string;
@@ -116,7 +115,6 @@ export default function AccountLayout({
     <AccountContext.Provider value={{ session, loading, refreshSession: checkSession }}>
       <div className="flex flex-col min-h-screen bg-[#fafaf9]">
         <Header />
-        <CategoryMenu />
 
         <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row gap-6 items-start">
