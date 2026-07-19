@@ -38,9 +38,8 @@ export async function GET() {
       return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
     }
 
-    // Try to find customer by userId (supabase auth id)
-    const customer = await dbService.getCustomerByUserId(customerId);
-    const resolvedCustomerId = customer?.id ?? customerId;
+    // The authenticated id (supabase auth user.id) is the same as Customer.id
+    const resolvedCustomerId = customerId;
 
     const transactions = await dbService.getLoyaltyTransactionsByCustomer(resolvedCustomerId);
     const totalPoints = transactions.reduce((sum: number, t: any) => sum + (t.points ?? 0), 0);
