@@ -93,17 +93,27 @@ export default function AdminProducts() {
 
     try {
       const res = await fetch(`/api/produtos/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
         setProducts(prev => prev.filter((p) => p.id !== id));
         setMessage("Produto excluído com sucesso.");
         return;
+      } else {
+        if (data.error && (data.error.includes("foreign key") || data.error.includes("OrderItem") || data.error.includes("constraint"))) {
+          alert("Não é possível excluir este produto pois ele já foi vendido em pedidos anteriores (histórico de vendas). Para ocultá-lo da loja, basta desativar o produto no botão ao lado.");
+          setMessage("Erro: O produto possui histórico de vendas e não pode ser deletado.");
+        } else {
+          alert(`Erro ao excluir do banco de dados: ${data.error || "Erro inesperado"}`);
+          setMessage(`Erro ao excluir: ${data.error || "Erro no servidor"}`);
+        }
+        return;
       }
     } catch (err) {
       console.warn("Could not delete from DB. Applying locally.", err);
+      setProducts(prev => prev.filter((p) => p.id !== id));
+      setMessage("Produto excluído localmente (Modo Demo).");
     }
-
-    setProducts(prev => prev.filter((p) => p.id !== id));
-    setMessage("Produto excluído localmente (Modo Demo).");
   };
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
