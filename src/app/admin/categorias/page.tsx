@@ -177,7 +177,7 @@ export default function AdminCategories() {
   };
 
   return (
-    <div className="space-y-8 select-none">
+    <div className="space-y-8">
       {/* Title */}
       <div className="space-y-1">
         <h1 className="font-serif text-3xl font-extrabold text-[#1c4735] tracking-tight">Categorias</h1>

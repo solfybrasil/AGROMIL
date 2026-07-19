@@ -122,7 +122,7 @@ export default function AdminReports() {
   ];
 
   return (
-    <div className="space-y-6 select-none animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up">
       {/* ── Page Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">

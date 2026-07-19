@@ -127,7 +127,7 @@ export default function AdminCoupons() {
   const totalUses = coupons.reduce((sum, c) => sum + c.usedCount, 0);
 
   return (
-    <div className="space-y-7 select-none animate-fade-in-up">
+    <div className="space-y-7 animate-fade-in-up">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

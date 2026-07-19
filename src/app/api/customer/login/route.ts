@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
           id: user.id,
           name: user.user_metadata?.name || customerProfile?.name || "Cliente",
           email: user.email,
+          planType: customerProfile?.planType || user.user_metadata?.planType || "COMUM",
         },
       });
     }
@@ -97,6 +98,7 @@ export async function POST(req: NextRequest) {
       name: customer.name,
       email: customer.email,
       role: "customer",
+      planType: customer.planType,
     });
 
     const cookieStore = await cookies();
@@ -114,6 +116,7 @@ export async function POST(req: NextRequest) {
         id: customer.id,
         name: customer.name,
         email: customer.email,
+        planType: customer.planType,
       },
     });
 

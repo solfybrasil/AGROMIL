@@ -176,7 +176,7 @@ export default function AdminDashboard() {
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
 
   return (
-    <div className="space-y-5 md:space-y-6 select-none animate-fade-in-up">
+    <div className="space-y-5 md:space-y-6 animate-fade-in-up">
 
       {/* ── Welcome Banner ─────────────────────────────────────────────────── */}
       <Card variant="dark" noPadding className="overflow-hidden">

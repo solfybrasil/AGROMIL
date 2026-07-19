@@ -680,6 +680,28 @@ export const dbService = {
     return formatted;
   },
 
+  async updateCustomer(id: string, customerData: any) {
+    const formatted = {
+      ...customerData,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (hasPrismaUrl) {
+      return await prisma.customer.update({ where: { id }, data: formatted });
+    }
+    if (db) {
+      const { data, error } = await db!.from("Customer").update(formatted).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    }
+    const idx = sessionCustomers.findIndex((c) => c.id === id);
+    if (idx > -1) {
+      sessionCustomers[idx] = { ...sessionCustomers[idx], ...formatted };
+      return sessionCustomers[idx];
+    }
+    return null;
+  },
+
   async getCustomerByEmail(email: string) {
     return executeQuery(
       async () => {

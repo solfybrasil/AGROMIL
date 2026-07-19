@@ -8,6 +8,7 @@ export interface SessionPayload {
   name: string;
   email: string;
   role: string;
+  planType?: string;
 }
 
 /**

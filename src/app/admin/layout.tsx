@@ -368,18 +368,8 @@ export default function AdminLayout({
           MAIN CONTENT AREA
       ══════════════════════════════════════════════ */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <main
-          className="flex-1 w-full max-w-7xl mx-auto animate-fade-in-up"
-          style={{
-            paddingTop: "calc(56px + 12px + env(safe-area-inset-top))",
-            paddingBottom: "calc(56px + 12px + env(safe-area-inset-bottom))",
-            paddingLeft: "clamp(12px, 4vw, 40px)",
-            paddingRight: "clamp(12px, 4vw, 40px)",
-          }}
-        >
-          <div className="md:pt-6 md:pb-10">
-            {children}
-          </div>
+        <main className="flex-1 w-full max-w-7xl mx-auto animate-fade-in-up px-4 md:px-10 pt-[calc(56px+12px+env(safe-area-inset-top))] md:pt-8 pb-[calc(56px+12px+env(safe-area-inset-bottom))] md:pb-8">
+          {children}
         </main>
       </div>
 

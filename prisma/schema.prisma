@@ -86,6 +86,7 @@ model Customer {
   city         String    @default("Itu")
   state        String    @default("SP")
   zipCode      String
+  planType     String    @default("COMUM")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   orders       Order[]

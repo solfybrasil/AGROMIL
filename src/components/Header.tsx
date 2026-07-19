@@ -437,7 +437,7 @@ export default function Header() {
 
           {/* User Account */}
           <Link
-            href={customerSession ? "/pedidos" : "/login"}
+            href={customerSession ? "/minha-conta" : "/login"}
             className="rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors flex items-center gap-1.5"
             title={customerSession ? `Minha Conta (${customerSession.name})` : "Entrar / Cadastrar"}
           >
@@ -530,11 +530,11 @@ export default function Header() {
                     </div>
                   </div>
                   <Link
-                    href="/pedidos"
+                    href="/minha-conta"
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-[9px] font-black uppercase text-[#e2b13c] bg-[#e2b13c]/15 border border-[#e2b13c]/20 px-2.5 py-1.5 rounded-lg flex items-center gap-1 flex-shrink-0"
                   >
-                    Pedidos
+                    Painel
                     <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>

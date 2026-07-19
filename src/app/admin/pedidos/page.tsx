@@ -370,7 +370,7 @@ export default function AdminOrdersKanban() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 select-none animate-fade-in-up" onClick={initAudio} onKeyDown={initAudio}>
+    <div className="space-y-4 md:space-y-6 animate-fade-in-up" onClick={initAudio} onKeyDown={initAudio}>
 
       {/* ── Header ─────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

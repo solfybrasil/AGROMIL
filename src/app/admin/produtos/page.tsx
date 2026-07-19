@@ -175,7 +175,7 @@ export default function AdminProducts() {
   });
 
   return (
-    <div className="space-y-4 md:space-y-7 select-none animate-fade-in-up">
+    <div className="space-y-4 md:space-y-7 animate-fade-in-up">
       
       {/* Header */}
       <div className="flex items-center justify-between gap-3">

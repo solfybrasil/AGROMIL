@@ -8,7 +8,7 @@ import * as bcrypt from "bcryptjs";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, password, phone, street, number, complement, neighborhood, city, state, zipCode } = body;
+    const { name, email, password, phone, street, number, complement, neighborhood, city, state, zipCode, planType = "COMUM" } = body;
 
     if (!name || !email || !password || !phone || !street || !number || !neighborhood || !zipCode) {
       return NextResponse.json(
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
             name,
             phone,
             role: "customer",
+            planType,
           },
         },
       });
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
           city: city || "Itu",
           state: state || "SP",
           zipCode,
+          planType,
         });
       }
 
@@ -116,6 +118,7 @@ export async function POST(req: NextRequest) {
       city: city || "Itu",
       state: state || "SP",
       zipCode,
+      planType,
     });
 
     const token = generateToken({
@@ -123,6 +126,7 @@ export async function POST(req: NextRequest) {
       name: customer.name,
       email: customer.email,
       role: "customer",
+      planType: customer.planType,
     });
 
     const cookieStore = await cookies();
