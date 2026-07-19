@@ -1,11 +1,13 @@
 "use client";
 
 import { useCartStore } from "@/lib/cart-store";
+import { useAddToCart } from "@/lib/useAddToCart";
 import { X, Plus, Minus, ShoppingBag, ShieldCheck, Truck, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function ProductDetailsModal() {
-  const { isProductModalOpen, activeProduct, closeProductModal, addItem } = useCartStore();
+  const { isProductModalOpen, activeProduct, closeProductModal } = useCartStore();
+  const addToCart = useAddToCart();
   const [quantity, setQuantity] = useState(1);
   const [mounted, setMounted] = useState(false);
 
@@ -41,7 +43,8 @@ export default function ProductDetailsModal() {
   };
 
   const handleAddToCart = () => {
-    addItem(product, quantity);
+    if (product.stock <= 0) return;
+    addToCart(product, quantity);
     closeProductModal();
   };
 

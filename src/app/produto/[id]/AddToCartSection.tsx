@@ -1,6 +1,7 @@
 "use client";
 
 import { useCartStore, Product } from "@/lib/cart-store";
+import { useAddToCart } from "@/lib/useAddToCart";
 import { Plus, Minus, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
@@ -9,7 +10,8 @@ interface AddToCartSectionProps {
 }
 
 export default function AddToCartSection({ product }: AddToCartSectionProps) {
-  const { addItem } = useCartStore();
+  const { toggleCart } = useCartStore();
+  const addToCart = useAddToCart();
   const [quantity, setQuantity] = useState(1);
 
   const handleDecrease = () => {
@@ -24,7 +26,8 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   };
 
   const handleAddToCart = () => {
-    addItem(product, quantity);
+    if (product.stock <= 0) return;
+    addToCart(product, quantity);
   };
 
   const isOutOfStock = product.stock <= 0;

@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Loader, ArrowRight, Trash2 } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
+import { useAddToCart } from "@/lib/useAddToCart";
 import Link from "next/link";
 
 interface Product {
@@ -32,7 +33,7 @@ export default function FavoritesPage() {
   const [session, setSession] = useState<any>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
 
-  const { addItem } = useCartStore();
+  const addToCart = useAddToCart();
   const router = useRouter();
 
   const loadFavorites = async () => {
@@ -76,7 +77,7 @@ export default function FavoritesPage() {
   const handleAddAllToCart = () => {
     if (favorites.length === 0) return;
     favorites.forEach((p) => {
-      addItem(p, 1);
+      addToCart(p, 1);
     });
     router.push("/carrinho");
   };

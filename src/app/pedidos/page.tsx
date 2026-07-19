@@ -11,7 +11,7 @@ import {
   ShieldCheck, RefreshCcw, Bell, ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
-import { useCartStore } from "@/lib/cart-store";
+import { useAddToCart } from "@/lib/useAddToCart";
 import { Suspense } from "react";
 
 // ─── Status helpers ───────────────────────────────────────────
@@ -100,7 +100,7 @@ function CustomerOrdersPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const newOrderId   = searchParams.get("novo");
-  const { addItem }  = useCartStore();
+  const addToCart = useAddToCart();
 
   const [session,        setSession]        = useState<any>(null);
   const [orders,         setOrders]         = useState<any[]>([]);
@@ -188,7 +188,7 @@ function CustomerOrdersPageInner() {
       const prod = item.product || {
         id: item.productId, name: item.productName || "Produto", price: item.price, images: [],
       };
-      addItem(prod, item.quantity);
+      addToCart(prod, item.quantity);
     });
     router.push("/carrinho");
   };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCartStore, Product } from "@/lib/cart-store";
+import { useAddToCart } from "@/lib/useAddToCart";
 import { Star, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -10,8 +11,10 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const { addItem, openProductModal } = useCartStore();
+  const { openProductModal } = useCartStore();
+  const addToCart = useAddToCart();
   const [mounted, setMounted] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -116,12 +119,18 @@ export default function ProductCard({ product }: ProductCardProps) {
             onClick={(e) => {
               e.stopPropagation();
               if (product.stock <= 0) return;
-              if (mounted) addItem(product);
+              if (mounted) {
+                addToCart(product);
+                setJustAdded(true);
+                window.setTimeout(() => setJustAdded(false), 600);
+              }
             }}
             disabled={product.stock <= 0}
             className={`flex items-center justify-center gap-1 rounded-lg p-2 sm:py-2 sm:px-3.5 shadow-xs transition-all flex-shrink-0 ${
               product.stock <= 0
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : justAdded
+                ? "bg-emerald-600 text-white animate-cart-pop"
                 : "bg-primary hover:bg-[#1b4332] text-white active-pop"
             }`}
           >

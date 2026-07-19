@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useCartStore, Product } from "@/lib/cart-store";
+import { Product } from "@/lib/cart-store";
+import { useAddToCart } from "@/lib/useAddToCart";
 import { ShoppingCart, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -13,7 +14,7 @@ interface RelatedProductsProps {
 export default function RelatedProducts({ categoryId, excludeProductId }: RelatedProductsProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addItem } = useCartStore();
+  const addToCart = useAddToCart();
 
   useEffect(() => {
     const fetchRelated = async () => {
@@ -111,7 +112,7 @@ export default function RelatedProducts({ categoryId, excludeProductId }: Relate
                 </div>
 
                 <button
-                  onClick={() => addItem(p, 1)}
+                  onClick={() => addToCart(p, 1)}
                   className="bg-primary hover:bg-[#1b4332] text-white p-2 rounded-xl shadow-xs transition-colors flex-shrink-0 cursor-pointer"
                   title="Adicionar ao Carrinho"
                 >

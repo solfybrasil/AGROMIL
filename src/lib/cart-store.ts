@@ -22,12 +22,14 @@ export interface CartItem {
   quantity: number;
 }
 
+export type AddItemResult = "added" | "exists" | "out_of_stock";
+
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
   activeProduct: Product | null;
   isProductModalOpen: boolean;
-  addItem: (product: Product, quantity?: number) => void;
+  addItem: (product: Product, quantity?: number) => AddItemResult;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -47,7 +49,7 @@ export const useCartStore = create<CartState>()(
       isProductModalOpen: false,
       
       addItem: (product, quantity = 1) => {
-        if (product.stock <= 0) return;
+        if (product.stock <= 0) return "out_of_stock";
         const currentItems = get().items;
         const existingIndex = currentItems.findIndex(
           (item) => item.product.id === product.id
@@ -59,12 +61,13 @@ export const useCartStore = create<CartState>()(
           // Cap quantity at product stock if stock exists
           const finalQty = product.stock > 0 ? Math.min(newQty, product.stock) : newQty;
           updatedItems[existingIndex].quantity = finalQty;
-          set({ items: updatedItems, isOpen: true }); // Open cart drawer when item is added
+          set({ items: updatedItems }); // Do not auto-open cart
+          return "exists";
         } else {
           set({
             items: [...currentItems, { product, quantity: Math.min(quantity, product.stock > 0 ? product.stock : 99) }],
-            isOpen: true,
           });
+          return "added";
         }
       },
 

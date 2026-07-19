@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import PWAInstaller from "@/components/PWAInstaller";
 import ChatWidget from "@/components/ChatWidget";
+import { CartToastProvider } from "@/components/CartToast";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -32,9 +33,11 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#fdfdfb] text-[#1a2f23]">
-        {children}
-        <PWAInstaller />
-        <ChatWidget />
+        <CartToastProvider>
+          {children}
+          <PWAInstaller />
+          <ChatWidget />
+        </CartToastProvider>
       </body>
     </html>
   );
