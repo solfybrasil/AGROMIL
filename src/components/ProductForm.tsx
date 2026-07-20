@@ -108,7 +108,8 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
   const [active, setActive] = useState(initialData?.active !== undefined ? initialData.active : true);
   const [featured, setFeatured] = useState(initialData?.featured !== undefined ? initialData.featured : false);
   const [dbHasNoCategories, setDbHasNoCategories] = useState(false);
-  const [imageFile, setImageFile] = useState<string | null>(initialData?.images?.[0] || null);
+  const [images, setImages] = useState<string[]>(initialData?.images?.length ? initialData.images : []);
+  const [isDragging, setIsDragging] = useState(false);
   const [isCustomUnit, setIsCustomUnit] = useState(!PRESET_UNITS.includes(initialData?.unit || "Unidade"));
 
   useEffect(() => {
@@ -132,15 +133,45 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
   }, []);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await processFiles(Array.from(files));
+    // Reset input so selecting the same file again re-triggers change
+    e.target.value = "";
+  };
+
+  const processFiles = async (files: File[]) => {
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) return;
     try {
-      const compressedBase64 = await compressImage(file);
-      setImageFile(compressedBase64);
+      const compressed = await Promise.all(imageFiles.map((f) => compressImage(f)));
+      setImages((prev) => [...prev, ...compressed]);
     } catch (err) {
       console.error("Failed to compress image:", err);
       setError("Falha ao carregar e comprimir a imagem. Tente outro arquivo.");
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await processFiles(Array.from(e.dataTransfer.files));
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   const parseCurrency = (val: string | number) => {
@@ -201,7 +232,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
       categoryId,
       active,
       featured,
-      images: imageFile ? [imageFile] : [],
+      images: images.length ? images : [],
     };
 
     try {
@@ -357,39 +388,79 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
               {/* Image Upload Area */}
               <div className="sm:col-span-2 space-y-2">
                 <label className="block text-[10px] font-black uppercase tracking-wider">
-                  Foto do Produto
+                  Fotos do Produto
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                  <div className="md:col-span-2">
-                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl p-6 cursor-pointer hover:border-primary hover:bg-primary/2 transition-all group">
-                      <div className="flex flex-col items-center text-center">
-                        <Upload className="h-6 w-6 text-gray-400 group-hover:text-primary transition-colors mb-2" />
-                        <span className="text-xs font-extrabold text-gray-700">Escolher Imagem</span>
-                        <span className="text-[9px] text-gray-400 mt-1">Formatos de foto: PNG, JPG, JPEG</span>
-                      </div>
-                      <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    </label>
+
+                <label
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 cursor-pointer transition-all group
+                    ${isDragging
+                      ? "border-primary bg-primary/5 scale-[1.01]"
+                      : "border-gray-100 hover:border-primary hover:bg-primary/2"}`}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <Upload className="h-6 w-6 text-gray-400 group-hover:text-primary transition-colors mb-2" />
+                    <span className="text-xs font-extrabold text-gray-700">
+                      {isDragging ? "Solte a imagem aqui" : "Arraste uma imagem ou clique para escolher"}
+                    </span>
+                    <span className="text-[9px] text-gray-400 mt-1">Formatos: PNG, JPG, JPEG — você pode adicionar várias</span>
                   </div>
-                  
-                  {/* Local Thumbnail Preview */}
-                  <div className="flex items-center justify-center border border-gray-100 bg-gray-50/50 rounded-2xl p-4 min-h-[120px] relative overflow-hidden group">
-                    {imageFile ? (
-                      <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="product-image-input"
+                  />
+                </label>
+
+                {/* Mobile: open camera directly */}
+                <div className="sm:hidden">
+                  <label className="flex items-center justify-center gap-2 w-full rounded-2xl border border-primary/30 bg-primary/5 py-3 text-xs font-black text-primary cursor-pointer active:scale-[0.98] transition-transform">
+                    <span>📷 Tirar Foto na Hora</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {/* Thumbnails grid */}
+                {images.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {images.map((img, idx) => (
+                      <div
+                        key={idx}
+                        className="relative border border-gray-100 bg-gray-50/50 rounded-xl p-1.5 aspect-square flex items-center justify-center overflow-hidden group"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imageFile} alt="Preview" className="max-h-24 max-w-full rounded-lg object-contain" />
+                        <img src={img} alt={`Foto ${idx + 1}`} className="max-h-full max-w-full rounded-lg object-contain" />
                         <button
                           type="button"
-                          onClick={() => setImageFile(null)}
-                          className="absolute -top-2 -right-2 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-xl shadow transition-colors cursor-pointer"
+                          onClick={() => removeImage(idx)}
+                          className="absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-xl shadow transition-colors cursor-pointer"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 w-3" />
                         </button>
+                        {idx === 0 && (
+                          <span className="absolute bottom-1 left-1 bg-primary text-white text-[7px] font-black px-1 py-0.5 rounded uppercase">
+                            Capa
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-[9px] text-gray-400 uppercase tracking-widest font-black">Sem Foto</span>
-                    )}
+                    ))}
                   </div>
-                </div>
+                ) : (
+                  <div className="flex items-center justify-center border border-gray-100 bg-gray-50/50 rounded-2xl p-4 min-h-[80px]">
+                    <span className="text-[9px] text-gray-400 uppercase tracking-widest font-black">Nenhuma foto ainda</span>
+                  </div>
+                )}
               </div>
 
               {/* Price */}
@@ -574,9 +645,9 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
             {/* Product image container */}
             <div className="aspect-square bg-gray-50 flex items-center justify-center border-b border-gray-50 relative overflow-hidden">
-              {imageFile ? (
+              {images[0] ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={imageFile} alt="Live Card preview" className="w-full h-full object-cover" />
+                <img src={images[0]} alt="Live Card preview" className="w-full h-full object-cover" />
               ) : (
                 <div className="text-center flex flex-col items-center gap-1.5 text-gray-300">
                   <ShoppingCart className="h-8 w-8" />
