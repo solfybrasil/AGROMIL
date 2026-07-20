@@ -43,7 +43,7 @@ export function CartToastProvider({ children }: { children: ReactNode }) {
     <CartToastContext.Provider value={{ notify }}>
       {children}
       {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[min(92vw,380px)] animate-toast-in">
+        <div className="fixed inset-x-0 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[100] mx-auto w-[min(92vw,380px)] animate-toast-in">
           <div
             className={`flex flex-wrap items-start gap-3 rounded-2xl border p-3.5 shadow-lg backdrop-blur
               ${toast.kind === "added"
@@ -88,7 +88,7 @@ export function CartToastProvider({ children }: { children: ReactNode }) {
             </button>
 
             {/* Action buttons: full-width row on mobile, inline on larger screens */}
-            <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto sm:flex-shrink-0 sm:contents">
+            <div className="flex items-center gap-2 w-full sm:w-auto sm:flex-shrink-0">
               <button
                 onClick={handleOpenCart}
                 className={`flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-lg px-3 py-2 sm:py-1.5 text-[11px] sm:text-[10px] font-black transition-colors
