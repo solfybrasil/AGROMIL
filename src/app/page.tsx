@@ -12,6 +12,10 @@ import { Leaf, Shield, Award, Sprout, ArrowRight, Heart } from "lucide-react";
 import Link from "next/link";
 import BannerCarousel from "@/components/BannerCarousel";
 
+// Buscar dados a cada request para refletir edições/adições de produtos
+// (destaques, etc.) instantaneamente, sem aguardar revalidação de cache.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const featuredProducts = (await dbService.getProducts({ featured: true })).slice(0, 4);
 
