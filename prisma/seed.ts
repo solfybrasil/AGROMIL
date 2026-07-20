@@ -1,7 +1,12 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import * as bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+
+const prisma = connectionString
+  ? new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
+  : new PrismaClient({} as any);
 
 async function main() {
   console.log("Starting seed database with stock photography URLs...");
