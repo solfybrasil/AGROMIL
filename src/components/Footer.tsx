@@ -24,7 +24,7 @@ export default function Footer() {
           </p>
           <div className="flex gap-4 pt-2">
             <a
-              href="https://facebook.com"
+              href="https://www.facebook.com/agromil.agropecuaria/?locale=pt_BR"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-[#2d6a4f] p-2 hover:bg-[#d8f3dc] hover:text-[#1b4332] transition-colors"
@@ -32,7 +32,7 @@ export default function Footer() {
               <Facebook className="h-4 w-4" />
             </a>
             <a
-              href="https://instagram.com"
+              href="https://instagram.com/agromilagropecuaria"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-[#2d6a4f] p-2 hover:bg-[#d8f3dc] hover:text-[#1b4332] transition-colors"
