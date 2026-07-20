@@ -44,6 +44,7 @@ export default function Header() {
   const { toggleCart, getCartCount } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [customerSession, setCustomerSession] = useState<any>(null);
   const router = useRouter();
 
@@ -96,11 +97,12 @@ export default function Header() {
       .catch(() => {});
   }, []);
 
-  // Click-outside closes dropdown
+  // Click-outside closes dropdown (and mobile inline search)
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
+        setMobileSearchOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -216,6 +218,109 @@ export default function Header() {
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+        {/* Mobile inline search (shown when search icon tapped) */}
+        {mobileSearchOpen && (
+          <div ref={searchRef} className="md:hidden absolute inset-x-0 top-0 z-50 bg-white px-4 py-3 shadow-lg animate-fade-in-down">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <input
+                autoFocus
+                type="text"
+                placeholder="Buscar produtos, insumos, rações..."
+                value={searchQuery}
+                onChange={handleInputChange}
+                onFocus={handleInputFocus}
+                onKeyDown={handleKeyDown}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary focus:bg-white transition-all placeholder-gray-400"
+              />
+              <button
+                onClick={() => { setMobileSearchOpen(false); setDropdownOpen(false); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Fechar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              {/* Mobile dropdown results */}
+              {showDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 max-h-[70vh] overflow-y-auto">
+                  {showRecentSearches && (
+                    <div>
+                      <div className="px-4 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" /> Buscas recentes
+                      </div>
+                      {recentSearches.map((term, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleRecentClick(term)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5"
+                        >
+                          <Clock className="h-3.5 w-3.5 text-gray-300 flex-shrink-0" />
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {showResults && (
+                    loadingSearch ? (
+                      <div className="px-4 py-6 text-center text-sm text-gray-400">Buscando...</div>
+                    ) : searchResults.length > 0 ? (
+                      <>
+                        <div className="px-4 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Produtos</div>
+                        {searchResults.map((product) => {
+                          const price = product.promoPrice ?? product.price;
+                          return (
+                            <button
+                              key={product.id}
+                              onClick={() => handleProductClick(product)}
+                              className="w-full text-left px-4 py-2.5 hover:bg-gray-50 flex items-center gap-3"
+                            >
+                              <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-100">
+                                {product.images?.[0] ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center"><Search className="h-4 w-4 text-gray-300" /></div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-800 truncate">{product.name}</p>
+                                {product.category && <p className="text-[10px] text-gray-400">{product.category.name}</p>}
+                              </div>
+                              <span className="text-sm font-extrabold text-primary flex-shrink-0">R$ {Number(price).toFixed(2)}</span>
+                            </button>
+                          );
+                        })}
+                        <div className="border-t border-gray-50">
+                          <button
+                            onClick={() => handleSubmitSearch(searchQuery)}
+                            className="w-full px-4 py-3 text-sm font-semibold text-primary hover:bg-primary-light flex items-center justify-between"
+                          >
+                            <span>Ver todos os resultados para &quot;{searchQuery}&quot;</span>
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="px-4 py-6 text-center">
+                        <p className="text-sm text-gray-500">Nenhum produto encontrado para</p>
+                        <p className="text-sm font-bold text-gray-700">&quot;{searchQuery}&quot;</p>
+                        <button
+                          onClick={() => handleSubmitSearch(searchQuery)}
+                          className="mt-3 text-xs text-primary font-semibold hover:underline"
+                        >
+                          Buscar mesmo assim →
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <Link href="/" className="flex items-center group flex-shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -428,9 +533,11 @@ export default function Header() {
           <button
             onClick={() => {
               setMobileMenuOpen(false);
-              router.push("/busca");
+              setMobileSearchOpen(true);
+              setDropdownOpen(true);
             }}
             className="md:hidden rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors"
+            aria-label="Buscar"
           >
             <Search className="h-5 w-5" />
           </button>
