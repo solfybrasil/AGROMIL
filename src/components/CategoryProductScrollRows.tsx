@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "./ProductCard";
 import { dbService } from "@/lib/db-service";
 import { Product } from "@/lib/cart-store";
-
 import BannerCarousel from "./BannerCarousel";
 
 interface HomeCategory {
@@ -17,76 +16,67 @@ interface HomeCategory {
 }
 
 const DEFAULT_CATEGORIES: HomeCategory[] = [
-  { id: "cat-vestidos", name: "Vestidos", slug: "vestidos", imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=200&auto=format&fit=crop" },
-  { id: "cat-tops", name: "Tops & Blusas", slug: "tops-blusas", imageUrl: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=200&auto=format&fit=crop" },
-  { id: "cat-bolsas", name: "Bolsas", slug: "acessorios", imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=200&auto=format&fit=crop" },
-  { id: "cat-calcas", name: "Calças", slug: "calcas-jeans", imageUrl: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=200&auto=format&fit=crop" },
-  { id: "cat-conjuntos", name: "Conjuntos", slug: "conjuntos", imageUrl: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=200&auto=format&fit=crop" },
-  { id: "cat-acessorios", name: "Acessórios", slug: "acessorios", imageUrl: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=200&auto=format&fit=crop" },
-  { id: "cat-sale", name: "SALE 50%", slug: "vestidos" },
+  { id: "cat-jardinagem", name: "Jardinagem & Vasos", slug: "jardinagem", imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=300" },
+  { id: "cat-petshop", name: "Petshop & Rações", slug: "petshop", imageUrl: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?q=80&w=300" },
+  { id: "cat-agropecuaria", name: "Agropecuária", slug: "agropecuaria", imageUrl: "https://images.unsplash.com/photo-1500595046743-cd271c9d7a40?q=80&w=300" },
+  { id: "cat-ferramentas", name: "Ferramentas", slug: "ferramentas", imageUrl: "https://images.unsplash.com/photo-1504148455328-c376907d081c?q=80&w=300" },
+  { id: "cat-irrigacao", name: "Irrigação & Bombas", slug: "irrigacao", imageUrl: "https://images.unsplash.com/photo-1558904541-efa843a96f9f?q=80&w=300" },
+  { id: "cat-vestuario-epi", name: "Vestuário & EPI", slug: "vestuario-epi", imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=300" },
+  { id: "cat-ofertas", name: "OFERTAS 30%", slug: "jardinagem" },
 ];
 
 const SECTIONS = [
   {
-    title: "Bolsas & Acessórios",
-    subtitle: "Couro legítimo, acabamento artesanal e ferragens douradas",
-    categoryId: "cat_acessorios",
-    slug: "acessorios",
+    title: "Jardinagem & Paisagismo",
+    subtitle: "Vasos, adubos, substratos e ferramentas de poda",
+    categoryId: "cat-jardinagem",
+    slug: "jardinagem",
   },
   {
-    title: "Tops & Blusas",
-    subtitle: "Regatas caneladas, camisas de linho e bodys alfaiataria",
-    categoryId: "cat_tops",
-    slug: "tops-blusas",
+    title: "Petshop & Rações",
+    subtitle: "Nutrição completa para cães, gatos e animais de estimação",
+    categoryId: "cat-petshop",
+    slug: "petshop",
   },
   {
-    title: "Vestidos & Midis",
-    subtitle: "Silhuetas fluidas e tecidos nobres para qualquer ocasião",
-    categoryId: "cat_vestidos",
-    slug: "vestidos",
+    title: "Agropecuária & Campo",
+    subtitle: "Sais minerais, rações de produção e suplementação animal",
+    categoryId: "cat-agropecuaria",
+    slug: "agropecuaria",
   },
   {
-    title: "Calças & Alfaiataria",
-    subtitle: "Modelagem ergonomicamente desenvolvida com caimento perfeito",
-    categoryId: "cat_calcas",
-    slug: "calcas-jeans",
+    title: "Ferramentas & Equipamentos",
+    subtitle: "Máquinas, furadeiras, chaves e equipamentos profissionais",
+    categoryId: "cat-ferramentas",
+    slug: "ferramentas",
   },
 ];
 
 const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
-  vestidos: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=600&auto=format&fit=crop",
-  "tops-blusas": "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=600&auto=format&fit=crop",
-  acessorios: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=600&auto=format&fit=crop",
-  "calcas-jeans": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=600&auto=format&fit=crop",
-  conjuntos: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=600&auto=format&fit=crop",
+  jardinagem: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=600",
+  petshop: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?q=80&w=600",
+  agropecuaria: "https://images.unsplash.com/photo-1500595046743-cd271c9d7a40?q=80&w=600",
+  ferramentas: "https://images.unsplash.com/photo-1504148455328-c376907d081c?q=80&w=600",
+  irrigacao: "https://images.unsplash.com/photo-1558904541-efa843a96f9f?q=80&w=600",
+  "vestuario-epi": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600",
 };
 
 export default function CategoryProductScrollRows() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<HomeCategory[]>(DEFAULT_CATEGORIES);
-  const [loading, setLoading] = useState(true);
 
   const loadCategories = async () => {
     try {
-      const stored = typeof window !== "undefined" ? (localStorage.getItem("siluet_categories") || localStorage.getItem("agromil_categories")) : null;
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCategories(parsed);
-          return;
-        }
-      }
-
       const dbCats = await dbService.getCategories();
       if (dbCats && dbCats.length > 0) {
         const mapped: HomeCategory[] = dbCats.map((c: any) => ({
           id: c.id,
           name: c.name,
-          slug: c.slug || "vestidos",
+          slug: c.slug || "jardinagem",
           imageUrl: c.imageUrl,
         }));
-        if (!mapped.some((c) => c.name.toUpperCase().includes("SALE"))) {
-          mapped.push({ id: "sale-pill", name: "SALE 50%", slug: "vestidos" });
+        if (!mapped.some((c) => c.name.toUpperCase().includes("OFERTAS"))) {
+          mapped.push({ id: "sale-pill", name: "OFERTAS 30%", slug: "jardinagem" });
         }
         setCategories(mapped);
       }
@@ -96,33 +86,30 @@ export default function CategoryProductScrollRows() {
   useEffect(() => {
     dbService.getProducts().then((products) => {
       setAllProducts(products);
-      setLoading(false);
     });
 
     loadCategories();
 
     const handleStorage = (e: StorageEvent) => {
-      if (!e.key || e.key === "siluet_categories" || e.key === "agromil_categories") {
+      if (!e.key || e.key === "agromil_categories" || e.key === "siluet_categories") {
         loadCategories();
       }
     };
 
     let bc: BroadcastChannel | null = null;
     if (typeof window !== "undefined" && "BroadcastChannel" in window) {
-      bc = new BroadcastChannel("siluet_categories_channel");
-      bc.onmessage = () => {
-        loadCategories();
-      };
+      bc = new BroadcastChannel("agromil_categories_channel");
+      bc.onmessage = () => loadCategories();
     }
 
     if (typeof window !== "undefined") {
-      window.addEventListener("siluet_categories_updated", loadCategories);
+      window.addEventListener("agromil_categories_updated", loadCategories);
       window.addEventListener("storage", handleStorage);
     }
 
     return () => {
       if (typeof window !== "undefined") {
-        window.removeEventListener("siluet_categories_updated", loadCategories);
+        window.removeEventListener("agromil_categories_updated", loadCategories);
         window.removeEventListener("storage", handleStorage);
       }
       if (bc) bc.close();
@@ -132,32 +119,31 @@ export default function CategoryProductScrollRows() {
   return (
     <div className="w-full bg-[#F5EFE6] py-5 sm:py-10 space-y-8 sm:space-y-16">
 
-      {/* 1. Category Chips — horizontal scroll on mobile, grid on desktop */}
+      {/* 1. Category Chips */}
       <section className="max-w-[1440px] mx-auto">
-        {/* Section header */}
         <div className="flex items-center justify-between gap-3 mb-3 sm:mb-5 border-b border-[#EDE3D3] pb-3 px-3 sm:px-5 lg:px-6">
           <div>
             <span className="text-[9px] sm:text-[10px] font-black text-[#8B5E3C] uppercase tracking-widest block mb-0.5">
-              COLEÇÕES DO ATELIER
+              CATEGORIAS DE PRODUTOS
             </span>
             <h2 className="font-serif text-base sm:text-xl md:text-2xl font-semibold text-[#2B2620]">
-              Explore Por Categoria
+              Explore o Catálogo Agromil
             </h2>
           </div>
         </div>
 
-        {/* Mobile: horizontal scroll chips */}
+        {/* Mobile: horizontal scroll */}
         <div className="sm:hidden flex gap-2 overflow-x-auto scrollbar-none px-3 pb-1">
           {categories.map((cat, idx) => {
-            const isSale = cat.name.toUpperCase().includes("SALE");
-            const fallbackImg = DEFAULT_CATEGORY_IMAGES[cat.slug] || DEFAULT_CATEGORY_IMAGES["vestidos"];
+            const isSale = cat.name.toUpperCase().includes("OFERTAS");
+            const fallbackImg = DEFAULT_CATEGORY_IMAGES[cat.slug] || DEFAULT_CATEGORY_IMAGES["jardinagem"];
             const bgImage = cat.imageUrl || fallbackImg;
             return (
               <Link
                 key={cat.id || idx}
                 href={`/categoria/${cat.slug}`}
                 className="group relative flex-shrink-0 h-10 rounded-full overflow-hidden flex items-center justify-center px-4 shadow-xs border border-white/30 active:scale-95 transition-all select-none"
-                style={{ minWidth: isSale ? 90 : 80 }}
+                style={{ minWidth: isSale ? 95 : 85 }}
               >
                 {bgImage && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -166,7 +152,7 @@ export default function CategoryProductScrollRows() {
                 <div className="absolute inset-0 bg-black/60" />
                 <div className="relative z-10 flex items-center gap-1">
                   <span className="text-[10px] font-black text-white whitespace-nowrap leading-none">{cat.name}</span>
-                  {isSale && <span className="bg-[#8B5E3C] text-white text-[7px] font-black px-1 py-0.5 rounded-full">50%</span>}
+                  {isSale && <span className="bg-[#8B5E3C] text-white text-[7px] font-black px-1 py-0.5 rounded-full">30%</span>}
                 </div>
               </Link>
             );
@@ -176,8 +162,8 @@ export default function CategoryProductScrollRows() {
         {/* Desktop: grid */}
         <div className="hidden sm:grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 px-5 lg:px-6">
           {categories.map((cat, idx) => {
-            const isSale = cat.name.toUpperCase().includes("SALE");
-            const fallbackImg = DEFAULT_CATEGORY_IMAGES[cat.slug] || DEFAULT_CATEGORY_IMAGES["vestidos"];
+            const isSale = cat.name.toUpperCase().includes("OFERTAS");
+            const fallbackImg = DEFAULT_CATEGORY_IMAGES[cat.slug] || DEFAULT_CATEGORY_IMAGES["jardinagem"];
             const bgImage = cat.imageUrl || fallbackImg;
             return (
               <Link
@@ -193,7 +179,7 @@ export default function CategoryProductScrollRows() {
                 <div className="relative z-10 flex items-center justify-center gap-1.5 px-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#8B5E3C] flex-shrink-0" />
                   <h3 className="font-serif text-xs sm:text-sm font-bold text-white tracking-tight leading-tight drop-shadow-sm truncate">{cat.name}</h3>
-                  {isSale && <span className="bg-[#8B5E3C] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase leading-none ml-1 flex-shrink-0">50%</span>}
+                  {isSale && <span className="bg-[#8B5E3C] text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase leading-none ml-1 flex-shrink-0">30%</span>}
                 </div>
               </Link>
             );
@@ -212,11 +198,7 @@ export default function CategoryProductScrollRows() {
             products={allProducts.filter(
               (p: any) =>
                 p.categoryId === section.categoryId ||
-                p.category?.slug === section.slug ||
-                (section.slug === "acessorios" && (p.name.toLowerCase().includes("bolsa") || p.name.toLowerCase().includes("óculos") || p.name.toLowerCase().includes("cinto"))) ||
-                (section.slug === "tops-blusas" && (p.name.toLowerCase().includes("top") || p.name.toLowerCase().includes("camisa") || p.name.toLowerCase().includes("blusa"))) ||
-                (section.slug === "vestidos" && (p.name.toLowerCase().includes("vestido") || p.name.toLowerCase().includes("midi"))) ||
-                (section.slug === "calcas-jeans" && (p.name.toLowerCase().includes("calça") || p.name.toLowerCase().includes("wide") || p.name.toLowerCase().includes("alfaiataria")))
+                p.category?.slug === section.slug
             )}
             fallbackProducts={allProducts}
           />
@@ -247,8 +229,7 @@ function CategoryScrollRow({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // If specific filter yielded few products, fill with fallback
-  const displayProducts = products.length >= 2 ? products : fallbackProducts.slice(0, 6);
+  const displayProducts = products.length >= 1 ? products : fallbackProducts.slice(0, 6);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -259,11 +240,10 @@ function CategoryScrollRow({
 
   return (
     <section className="max-w-[1440px] mx-auto">
-      {/* Section Header */}
       <div className="flex items-center justify-between gap-3 mb-3 sm:mb-5 border-b border-[#EDE3D3] pb-3 px-3 sm:px-5 lg:px-6">
         <div>
           <span className="text-[9px] sm:text-[11px] font-black text-[#8B5E3C] uppercase tracking-widest block mb-0.5">
-            COLEÇÃO
+            AGROMIL MARKETPLACE
           </span>
           <h2 className="font-serif text-base sm:text-2xl md:text-3xl font-semibold text-[#2B2620] leading-tight">
             {title}
@@ -292,7 +272,6 @@ function CategoryScrollRow({
         </div>
       </div>
 
-      {/* Horizontal Scroll Product List */}
       <div
         ref={scrollRef}
         className="flex gap-2.5 sm:gap-5 overflow-x-auto snap-x scroll-smooth pb-3 pt-1 scrollbar-none -mx-0 px-3 sm:px-5 lg:px-6"
