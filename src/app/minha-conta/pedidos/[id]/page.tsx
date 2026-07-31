@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 
-interface OrderDetailPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function OrderDetailPageRedirect({ params }: OrderDetailPageProps) {
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
+export default function OrderDetailPageRedirect() {
+  const params = useParams();
+  const id = (params?.id as string) || "";
   const router = useRouter();
 
   useEffect(() => {
-    router.replace(`/pedidos/${id}`);
+    if (id) {
+      router.replace(`/pedidos/${id}`);
+    }
   }, [id, router]);
 
   return (

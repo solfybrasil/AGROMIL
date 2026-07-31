@@ -6,6 +6,8 @@ import { useAddToCart } from "@/lib/useAddToCart";
 import { ShoppingCart, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+import { dbService } from "@/lib/db-service";
+
 interface RelatedProductsProps {
   categoryId: string;
   excludeProductId: string;
@@ -19,23 +21,28 @@ export default function RelatedProducts({ categoryId, excludeProductId }: Relate
   useEffect(() => {
     const fetchRelated = async () => {
       try {
-        const res = await fetch(`/api/produtos?categoryId=${categoryId}&activeOnly=true`);
-        if (res.ok) {
-          const data = await res.json();
-          // Filter out current product
-          const filtered = data.filter((p: Product) => p.id !== excludeProductId).slice(0, 4);
-          
-          if (filtered.length > 0) {
-            setProducts(filtered);
-          } else {
-            // Fallback: load general featured products
-            const fallbackRes = await fetch("/api/produtos?featured=true&activeOnly=true");
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json();
-              setProducts(fallbackData.filter((p: Product) => p.id !== excludeProductId).slice(0, 4));
-            }
+        let list: Product[] = [];
+        try {
+          const res = await fetch(`/api/produtos?categoryId=${categoryId}&activeOnly=true`);
+          if (res.ok) {
+            list = await res.json();
           }
+        } catch (e) {
+          console.warn("Fetch related via API failed, fallback to dbService", e);
         }
+
+        if (!list || list.length === 0) {
+          list = await dbService.getProducts({ categoryId, includeInactive: false });
+        }
+
+        let filtered = (list || []).filter((p: Product) => String(p.id) !== String(excludeProductId)).slice(0, 4);
+
+        if (filtered.length === 0) {
+          const all = await dbService.getProducts({ featured: true, includeInactive: false });
+          filtered = (all || []).filter((p: Product) => String(p.id) !== String(excludeProductId)).slice(0, 4);
+        }
+
+        setProducts(filtered);
       } catch (err) {
         console.warn("Failed to load related products:", err);
       } finally {

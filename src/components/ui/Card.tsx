@@ -79,13 +79,13 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-[10px] font-black text-[#1b4332] uppercase tracking-widest flex items-center gap-1.5",
+      "text-xs font-serif font-bold text-[#2B2620] uppercase tracking-wider flex items-center gap-2",
       className
     )}
     {...props}
   >
     {Icon && (
-      <Icon className={cn("h-3.5 w-3.5 text-primary flex-shrink-0", iconClassName)} />
+      <Icon className={cn("h-4 w-4 text-[#8B5E3C] flex-shrink-0", iconClassName)} />
     )}
     {children}
   </h3>

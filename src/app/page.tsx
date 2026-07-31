@@ -1,191 +1,231 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CategoryMenu from "@/components/CategoryMenu";
 import ProductCard from "@/components/ProductCard";
+import Link from "next/link";
+import { ArrowRight, Smartphone, ShoppingBag, Layers, Sparkles } from "lucide-react";
 import CartDrawer from "@/components/CartDrawer";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import HeroSlider from "@/components/HeroSlider";
-import IFoodCategories from "@/components/IFoodCategories";
-import { dbService } from "@/lib/db-service";
-import { Product } from "@/lib/cart-store";
-import { Leaf, Shield, Award, Sprout, ArrowRight, Heart } from "lucide-react";
-import Link from "next/link";
+import CategoryProductScrollRows from "@/components/CategoryProductScrollRows";
 import BannerCarousel from "@/components/BannerCarousel";
+import { getCurrentUserId, getRecommendations, hasPersonalization } from "@/lib/recommendation-engine";
+import { dbService } from "@/lib/db-service";
 
-// Buscar dados a cada request para refletir edições/adições de produtos
-// (destaques, etc.) instantaneamente, sem aguardar revalidação de cache.
-export const dynamic = "force-dynamic";
+export default function Home() {
+  const [userId, setUserId] = useState<string>("guest");
+  const [recommended, setRecommended] = useState<any[]>([]);
+  const [hasPersonal, setHasPersonal] = useState(false);
 
-export default async function Home() {
-  const featuredProducts = (await dbService.getProducts({ featured: true })).slice(0, 4);
+  useEffect(() => {
+    const uid = getCurrentUserId();
+    setUserId(uid);
+    setHasPersonal(hasPersonalization(uid));
+    dbService.getProducts().then((products) => {
+      if (products && products.length > 0) {
+        const recs = getRecommendations(uid, products as any[], 12);
+        setRecommended(recs);
+      }
+    });
+  }, []);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
+    <div className="flex flex-col min-h-screen bg-[#F5EFE6] text-[#2B2620]">
+      {/* 1. Header Fixo */}
       <Header />
 
-      {/* Hero Banner Slider Carousel */}
+      {/* 2. Hero da Home (Luxora Full-Bleed Editorial) */}
       <HeroSlider />
 
-      {/* iFood-style categories bubbles row */}
-      <IFoodCategories />
+      {/* 3. Categorias & Produtos */}
+      <CategoryProductScrollRows />
 
-      {/* Promotional Banners Carousel */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        <BannerCarousel />
-      </div>
-
-      {/* Benefits Highlights Section */}
-      <section className="bg-white py-10 border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="flex items-center gap-3 p-3">
-            <div className="rounded-full bg-primary-light p-2.5 text-primary flex-shrink-0">
-              <Leaf className="h-5 w-5" />
-            </div>
+      {/* 4. Seção PARA VOCÊ — Feed personalizado por conta */}
+      {recommended.length > 0 && (
+        <section className="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-6 py-12">
+          <div className="flex items-center justify-between gap-3 mb-6 border-b border-[#EDE3D3] pb-4">
             <div>
-              <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Produtos Selecionados</h4>
-              <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Melhores sementes e insumos</p>
+              <span className="text-[10px] font-bold text-[#8B5E3C] uppercase tracking-widest block mb-0.5">
+                {hasPersonal ? "Feed Personalizado" : "Em Destaque"}
+              </span>
+              <h2 className="font-serif text-xl sm:text-2xl font-semibold text-[#2B2620] flex items-center gap-2">
+                {hasPersonal ? (
+                  <><Sparkles className="h-5 w-5 text-[#8B5E3C]" /> Escolhidos Para Você</>
+                ) : (
+                  "Destaques da Semana"
+                )}
+              </h2>
+              {hasPersonal && (
+                <p className="text-[11px] text-[#7A6F63] mt-1">
+                  Baseado nas suas preferências e histórico de navegação
+                </p>
+              )}
             </div>
+            <Link href="/busca" className="text-[11px] font-bold text-[#8B5E3C] hover:text-[#2B2620] transition-colors flex items-center gap-1">
+              Ver tudo <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
 
-          <div className="flex items-center gap-3 p-3">
-            <div className="rounded-full bg-[#fdf2e9] p-2.5 text-[#e2b13c] flex-shrink-0">
-              <Shield className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Compra 100% Segura</h4>
-              <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Checkout direto no WhatsApp</p>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            {recommended.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
+        </section>
+      )}
 
-          <div className="flex items-center gap-3 p-3">
-            <div className="rounded-full bg-primary-light p-2.5 text-primary flex-shrink-0">
-              <Award className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Tradição em Itu/SP</h4>
-              <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Parceria forte desde 2012</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3 p-3">
-            <div className="rounded-full bg-[#fdf2e9] p-2.5 text-[#e2b13c] flex-shrink-0">
-              <Sprout className="h-5 w-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Técnicos Especialistas</h4>
-              <p className="text-[10px] text-gray-500 mt-0.5 font-medium">Dicas e orientações de manejo</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="text-center space-y-2 mb-12">
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">Nossas Indicações</span>
-          <h2 className="font-serif text-3xl font-extrabold text-[#1b4332]">Destaques da Semana</h2>
-          <p className="text-xs text-gray-500 max-w-md mx-auto">Confira os produtos mais procurados pelos sítios e residências de Itu nos últimos dias.</p>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
-      {/* "Our Story" Section with Stock Photography */}
-      <section className="bg-[#fcfcf9] py-20 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Story Visual Box - Stock Photography */}
-          <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-lg select-none group border border-gray-200">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/agromil-loja.jpg"
-              alt="Fachada da Agromil Agropecuária em Itu/SP"
-              className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-103"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1b4332]/90 via-black/20 to-transparent flex flex-col justify-end p-8 text-white">
-              <div className="rounded-full bg-white/10 backdrop-blur-md px-3.5 py-1 text-[9px] font-bold tracking-widest uppercase self-start mb-4 border border-white/5">
-                Sede Itu/SP
-              </div>
-              <h3 className="font-serif text-2xl font-bold text-[#e2b13c]">Agromil Agropecuária</h3>
-              <p className="text-[11px] text-gray-200 mt-1 leading-none font-medium">Av. Caetano Ruggieri, 2191 - Parque Res. Mayard</p>
-            </div>
-          </div>
-
-          {/* Story Text */}
-          <div className="space-y-6">
-            <span className="text-xs font-bold text-primary uppercase tracking-widest">Nossa História</span>
-            <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-[#1b4332] leading-tight">
-              Tradição e Parceria com o Lar e o Produtor Rural
+      {/* 4. Seção Editorial (Fashion Store Design & Whitespace) */}
+      <section className="bg-[#EDE3D3] py-14 sm:py-16 px-3 sm:px-5 lg:px-6 border-y border-[#EDE3D3]/60">
+        <div className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Text Editorial Block */}
+          <div className="lg:col-span-6 space-y-6">
+            <span className="text-xs font-bold text-[#8B5E3C] uppercase tracking-widest">
+              Fashion Store Design — Atelier Siluet
+            </span>
+            <h2 className="font-serif text-3xl sm:text-5xl font-semibold text-[#2B2620] leading-tight">
+              Design Atemporal & <br />
+              <span className="italic text-[#8B5E3C] font-normal">Estética Minimalista</span>
             </h2>
             
-            <p className="text-sm text-gray-600 leading-relaxed font-medium">
-              Fundada em Itu/SP, a <strong>Agromil</strong> nasceu com a missão de aproximar os melhores recursos de cultivo e cuidado animal de quem ama a vida no campo e na cidade. Oferecemos um atendimento consultivo de verdade: ajudamos você a escolher a ração ideal para o seu pet, o adubo correto para sua horta e a ferramenta certa para sua poda.
+            <p className="text-sm md:text-base text-[#7A6F63] leading-relaxed font-normal">
+              Na <strong>SILUET</strong>, acreditamos que a moda de luxo reside no equilíbrio perfeito entre linhas puras, tecidos nobres e silhuetas que abraçam a beleza feminina sem excessos. Cada peça é desenhada para transcender tendências passageiras.
             </p>
 
-            {/* Bullets with icons */}
-            <div className="space-y-4 pt-2">
-              <div className="flex gap-3">
-                <div className="rounded-full bg-primary-light p-1 text-primary flex-shrink-0 h-6 w-6 flex items-center justify-center">
-                  <Award className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-800">Origem e Qualidade Garantidas</h4>
-                  <p className="text-xs text-gray-500 mt-0.5 font-medium">Trabalhamos apenas com marcas líderes homologadas pelo Ministério da Agricultura.</p>
-                </div>
+            <div className="grid grid-cols-2 gap-6 pt-4 border-t border-[#8B5E3C]/20">
+              <div>
+                <h4 className="font-serif text-xl font-semibold text-[#2B2620]">Linho & Seda 100%</h4>
+                <p className="text-xs text-[#7A6F63] mt-1">Matérias-primas de origem sustentável e toque ultra aveludado.</p>
               </div>
-              
-              <div className="flex gap-3">
-                <div className="rounded-full bg-primary-light p-1 text-primary flex-shrink-0 h-6 w-6 flex items-center justify-center">
-                  <Heart className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-800">Atendimento Ituano Amigável</h4>
-                  <p className="text-xs text-gray-500 mt-0.5 font-medium">Nossa equipe é formada por especialistas prontos para ajudar no balcão ou WhatsApp.</p>
-                </div>
+              <div>
+                <h4 className="font-serif text-xl font-semibold text-[#2B2620]">Corte Alfaiataria</h4>
+                <p className="text-xs text-[#7A6F63] mt-1">Modelagem ergonômica desenvolvida para caimento impecável.</p>
               </div>
             </div>
 
             <div className="pt-4">
               <Link
                 href="/sobre"
-                className="inline-flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary-dark text-white px-6 py-3 text-sm font-bold transition-all shadow-xs"
+                className="inline-flex items-center gap-2 bg-[#1A1A1A] hover:bg-[#8B5E3C] text-white px-8 py-4 text-xs font-medium uppercase tracking-wider transition-colors shadow-sm"
               >
-                <span>Conhecer Nossa História</span>
+                <span>Conhecer o Atelier</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
+
+          {/* Visual Editorial Image Layout */}
+          <div className="lg:col-span-6 grid grid-cols-2 gap-4">
+            <div className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-lg border border-white/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop"
+                alt="Editorial Look Siluet"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-lg border border-white/40 translate-y-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?q=80&w=800&auto=format&fit=crop"
+                alt="Editorial Details Siluet"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
         </div>
       </section>
 
-      {/* Newsletter Incentive Section */}
-      <section className="bg-white py-16 px-4 sm:px-6 lg:px-8 border-t border-gray-100">
-        <div className="max-w-4xl mx-auto rounded-3xl bg-[#1b4332] p-8 md:p-12 text-white text-center space-y-6 shadow-xl relative overflow-hidden select-none">
-          <div className="absolute top-0 right-0 text-white/5 pointer-events-none translate-x-12 -translate-y-12">
-            <Leaf className="h-48 w-48 fill-current" />
-          </div>
+      {/* 5. Seção Mobile Preview & App Mockup */}
+      <section className="py-14 sm:py-16 px-3 sm:px-5 lg:px-6 max-w-[1440px] mx-auto w-full">
+        <div className="bg-[#1A1A1A] rounded-3xl p-8 sm:p-14 text-white grid grid-cols-1 lg:grid-cols-12 gap-10 items-center overflow-hidden shadow-2xl relative">
           
-          <h3 className="font-serif text-2xl sm:text-3xl font-bold">
-            Receba Dicas de Cultivo e Ofertas Especiais!
+          <div className="lg:col-span-6 space-y-6">
+            <div className="inline-flex items-center gap-2 bg-white/10 text-[#EDE3D3] text-xs font-semibold uppercase tracking-widest px-3.5 py-1 rounded-full border border-white/10">
+              <Smartphone className="h-3.5 w-3.5 text-[#8B5E3C]" />
+              <span>Experiência Mobile First</span>
+            </div>
+
+            <h3 className="font-serif text-3xl sm:text-5xl font-semibold leading-tight">
+              Sua Loja Favorita <br />
+              <span className="italic font-normal text-[#EDE3D3]">Na Palma da Mão</span>
+            </h3>
+
+            <p className="text-xs sm:text-sm text-gray-300 leading-relaxed font-normal max-w-md">
+              Navegação ultra rápida, carrinho instantâneo sem recarregar a página, seletor visual de cores e checkout simplificado no Pix ou WhatsApp em segundos.
+            </p>
+
+            <div className="flex flex-wrap gap-4 pt-2">
+              <div className="flex items-center gap-3 bg-white/5 border border-white/10 p-3.5 rounded-xl">
+                <ShoppingBag className="h-5 w-5 text-[#8B5E3C]" />
+                <div>
+                  <h4 className="text-xs font-bold text-white">Carrinho Drawer</h4>
+                  <p className="text-[10px] text-gray-400">Adicione sem sair da página</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-white/5 border border-white/10 p-3.5 rounded-xl">
+                <Layers className="h-5 w-5 text-[#8B5E3C]" />
+                <div>
+                  <h4 className="text-xs font-bold text-white">Filtros Dinâmicos</h4>
+                  <p className="text-[10px] text-gray-400">Cor, tamanho e categoria</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Phone Mockup Representation */}
+          <div className="lg:col-span-6 flex justify-center lg:justify-end">
+            <div className="w-full max-w-[280px] bg-[#F5EFE6] text-[#2B2620] rounded-[40px] p-4 shadow-2xl border-4 border-gray-800 relative">
+              <div className="w-24 h-4 bg-gray-800 rounded-full mx-auto mb-3" />
+              <div className="space-y-3">
+                <div className="h-8 bg-[#EDE3D3] rounded-lg flex items-center px-3 justify-between">
+                  <span className="font-serif text-xs font-bold">SILUET</span>
+                  <ShoppingBag className="h-4 w-4 text-[#8B5E3C]" />
+                </div>
+                <div className="h-28 rounded-lg overflow-hidden bg-gray-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop" className="w-full h-full object-cover" alt="App preview" />
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-[#EDE3D3] space-y-1">
+                  <div className="h-3 bg-[#EDE3D3] rounded w-3/4" />
+                  <div className="h-3 bg-[#8B5E3C]/20 rounded w-1/2" />
+                  <div className="mt-2 h-7 bg-[#1A1A1A] rounded text-white text-[9px] font-bold flex items-center justify-center">
+                    Comprar em 1-Clique
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 6. Newsletter Incentive Section */}
+      <section className="bg-[#F5EFE6] py-16 px-4 sm:px-6 lg:px-8 border-t border-[#EDE3D3]">
+        <div className="max-w-3xl mx-auto text-center space-y-6 select-none">
+          <span className="text-xs font-bold text-[#8B5E3C] uppercase tracking-widest">Atelier Newsletter</span>
+          <h3 className="font-serif text-3xl sm:text-4xl font-semibold text-[#2B2620]">
+            Receba Acesso Antecipado às Novas Coleções
           </h3>
-          <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed font-medium">
-            Assine nossa newsletter semanal e receba cupons de desconto, novidades sobre rações e dicas exclusivas de jardinagem preparadas pelos nossos agrônomos.
+          <p className="text-xs sm:text-sm text-[#7A6F63] max-w-md mx-auto leading-relaxed font-normal">
+            Assine nossa newsletter VIP e receba 10% OFF na primeira compra, cupons exclusivos e dicas editoriais de styling.
           </p>
 
           <form className="max-w-md mx-auto flex flex-col sm:flex-row gap-2 pt-2">
             <input
               type="email"
-              placeholder="Digite seu melhor e-mail"
-              className="flex-1 bg-white/10 border border-white/20 rounded-md py-3 px-4 text-sm text-white placeholder-white/50 focus:outline-none focus:bg-white focus:text-[#1b4332] focus:placeholder-gray-400 transition-all"
+              placeholder="Digite seu e-mail de preferência"
+              className="flex-1 bg-white border border-[#EDE3D3] rounded-none py-3.5 px-4 text-xs text-[#2B2620] placeholder-[#7A6F63] focus:outline-none focus:border-[#1A1A1A] transition-colors"
               required
             />
             <button
               type="submit"
-              className="bg-[#e2b13c] hover:bg-[#cfa132] text-[#1b4332] rounded-md py-3 px-6 text-sm font-bold shadow-md transition-all active:scale-95 whitespace-nowrap"
+              className="bg-[#1A1A1A] hover:bg-[#8B5E3C] text-white rounded-none py-3.5 px-8 text-xs font-medium uppercase tracking-wider transition-colors active:scale-95 whitespace-nowrap shadow-sm"
             >
               Inscrever-se
             </button>
@@ -196,10 +236,10 @@ export default async function Home() {
       {/* Footer */}
       <Footer />
 
-      {/* Shopping Cart Slider Drawer */}
+      {/* Shopping Cart Drawer */}
       <CartDrawer />
 
-      {/* Product Details Modal (iFood Style) */}
+      {/* Product Details Modal */}
       <ProductDetailsModal />
     </div>
   );

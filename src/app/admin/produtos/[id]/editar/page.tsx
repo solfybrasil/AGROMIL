@@ -1,62 +1,80 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import ProductForm from "@/components/ProductForm";
 import { dbService } from "@/lib/db-service";
-import { Product } from "@/lib/cart-store";
 import { MOCK_PRODUCTS } from "@/lib/mocks";
 
-interface EditProductPageProps {
-  params: Promise<{ id: string }>;
-}
+export default function EditProductPage() {
+  const params = useParams();
+  const id = (params?.id as string) || "";
 
-export default async function EditProductPage({ params }: EditProductPageProps) {
-  const resolvedParams = await params;
-  const id = resolvedParams.id;
+  const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  let product = null;
+  useEffect(() => {
+    let active = true;
+    if (!id) return;
+    setLoading(true);
 
-  // 1. Try to fetch from DB
-  try {
-    const dbProduct = await dbService.getProductById(id);
+    async function loadProduct() {
+      let foundProduct: any = null;
 
-    if (dbProduct) {
-      product = {
-        id: dbProduct.id,
-        name: dbProduct.name,
-        description: dbProduct.description,
-        shortDesc: dbProduct.shortDesc || "",
-        price: dbProduct.price,
-        promoPrice: dbProduct.promoPrice ? Number(dbProduct.promoPrice) : "",
-        stock: dbProduct.stock,
-        unit: dbProduct.unit,
-        sku: dbProduct.sku || "",
-        categoryId: dbProduct.categoryId,
-        active: dbProduct.active,
-        featured: dbProduct.featured,
-      };
+      try {
+        const dbProduct = await dbService.getProductById(id);
+
+        if (dbProduct) {
+          foundProduct = {
+            id: dbProduct.id,
+            name: dbProduct.name,
+            description: dbProduct.description,
+            shortDesc: dbProduct.shortDesc || "",
+            price: dbProduct.price,
+            promoPrice: dbProduct.promoPrice ? Number(dbProduct.promoPrice) : "",
+            stock: dbProduct.stock,
+            unit: dbProduct.unit,
+            sku: dbProduct.sku || "",
+            categoryId: dbProduct.categoryId,
+            active: dbProduct.active,
+            featured: dbProduct.featured,
+          };
+        }
+      } catch (err) {
+        console.warn("DB Lookup failed for Product Edit, checking mocks.", err);
+      }
+
+      if (!foundProduct) {
+        const mock = MOCK_PRODUCTS.find((p) => p.id === id);
+        if (mock) {
+          foundProduct = {
+            id: mock.id,
+            name: mock.name,
+            description: mock.description,
+            shortDesc: mock.shortDesc || "",
+            price: mock.price,
+            promoPrice: mock.promoPrice || "",
+            stock: mock.stock,
+            unit: mock.unit,
+            sku: mock.sku || "",
+            categoryId: mock.categoryId,
+            active: mock.active,
+            featured: mock.featured,
+          };
+        }
+      }
+
+      if (active) {
+        setProduct(foundProduct);
+        setLoading(false);
+      }
     }
-  } catch (err) {
-    console.warn("DB Lookup failed for Product Edit, checking mocks.", err);
-  }
 
-  // 2. Check mocks if DB lookup yielded nothing
-  if (!product) {
-    const mock = MOCK_PRODUCTS.find((p) => p.id === id);
-    if (mock) {
-      product = {
-        id: mock.id,
-        name: mock.name,
-        description: mock.description,
-        shortDesc: mock.shortDesc || "",
-        price: mock.price,
-        promoPrice: mock.promoPrice || "",
-        stock: mock.stock,
-        unit: mock.unit,
-        sku: mock.sku || "",
-        categoryId: mock.categoryId,
-        active: mock.active,
-        featured: mock.featured,
-      };
-    }
-  }
+    loadProduct();
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   if (!product) {
     return (

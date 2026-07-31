@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CategoryMenu from "@/components/CategoryMenu";
@@ -8,21 +12,18 @@ import { dbService } from "@/lib/db-service";
 import { Product } from "@/lib/cart-store";
 import { Flower2, Dog, Wheat, Sprout, Pipette, ShieldAlert, SlidersHorizontal, Search } from "lucide-react";
 
-interface CategoryPageProps {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ q?: string }>;
-}
+export default function CategoryPage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const slug = (params?.slug as string) || "";
+  const searchQuery = searchParams.get("q") || "";
 
-export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
-  const slug = resolvedParams.slug;
-  const searchQuery = resolvedSearchParams.q || "";
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // 1. Identify category attributes
   let categoryName = "";
   let categoryIcon = Flower2;
-  let catId = `cat-${slug}`;
 
   switch (slug) {
     case "jardinagem":
@@ -58,20 +59,41 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       categoryIcon = SlidersHorizontal;
   }
 
-  // 2. Fetch category and products using dbService
-  let products: Product[] = [];
-  let categoryExists = false;
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
 
-  if (slug === "busca") {
-    products = await dbService.getProducts({ search: searchQuery });
-  } else {
-    const categories = await dbService.getCategories();
-    const currentCat = categories.find((c) => c.slug === slug);
-    if (currentCat) {
-      categoryExists = true;
-      products = await dbService.getProducts({ categoryId: currentCat.id });
+    async function loadData() {
+      if (slug === "busca") {
+        const fetched = await dbService.getProducts({ search: searchQuery });
+        if (active) {
+          setProducts(fetched);
+          setLoading(false);
+        }
+      } else {
+        const categories = await dbService.getCategories();
+        const currentCat = categories.find((c: any) => c.slug === slug);
+        if (currentCat) {
+          const fetched = await dbService.getProducts({ categoryId: currentCat.id });
+          if (active) {
+            setProducts(fetched);
+            setLoading(false);
+          }
+        } else {
+          const fetched = await dbService.getProducts();
+          if (active) {
+            setProducts(fetched);
+            setLoading(false);
+          }
+        }
+      }
     }
-  }
+
+    loadData();
+    return () => {
+      active = false;
+    };
+  }, [slug, searchQuery]);
 
   const HeadingIcon = categoryIcon;
 

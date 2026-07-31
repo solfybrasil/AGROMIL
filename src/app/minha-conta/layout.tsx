@@ -2,10 +2,12 @@
 
 import { useEffect, useState, createContext, useContext } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { User, ClipboardList, MapPin, Award, LogOut, Loader, LayoutDashboard, ChevronRight, Menu, X } from "lucide-react";
+import { User, ClipboardList, MapPin, Award, LogOut, Loader, LayoutDashboard, ChevronRight, Menu, X, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+
+import { clientAuth } from "@/lib/client-auth";
 
 export interface CustomerSession {
   id: string;
@@ -49,14 +51,21 @@ export default function AccountLayout({
 
   const checkSession = async () => {
     try {
-      const res = await fetch("/api/customer/me");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.session) {
-          setSession(data.session);
-        } else {
-          router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
-        }
+      const custSession = await clientAuth.getCustomerSession();
+      if (custSession) {
+        setSession({
+          id: custSession.id,
+          name: custSession.name,
+          email: custSession.email,
+          phone: custSession.phone || "",
+          planType: custSession.planType || "COMUM",
+          street: "",
+          number: "",
+          neighborhood: "",
+          city: "Itu",
+          state: "SP",
+          zipCode: "",
+        });
       } else {
         router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
       }
@@ -70,8 +79,7 @@ export default function AccountLayout({
 
   useEffect(() => {
     checkSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]); // Only run once on layout mount
+  }, [pathname]);
 
   // Close mobile drawer on navigation
   useEffect(() => {
@@ -80,13 +88,16 @@ export default function AccountLayout({
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("/api/customer/logout", { method: "POST" });
-      if (res.ok) {
-        router.push("/login");
-        router.refresh();
+      clientAuth.logoutCustomer();
+      setSession(null);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("siluet_auth_updated"));
       }
+      router.push("/login");
     } catch (err) {
       console.error("Logout failed:", err);
+      clientAuth.logoutCustomer();
+      router.push("/login");
     }
   };
 
@@ -109,54 +120,51 @@ export default function AccountLayout({
     { label: "Meu Perfil", href: "/minha-conta/perfil", icon: User },
     { label: "Endereços Salvos", href: "/minha-conta/enderecos", icon: MapPin },
     { label: "Clube Fidelidade", href: "/minha-conta/fidelidade", icon: Award },
+    { label: "Painel Admin", href: "/admin", icon: ShieldCheck },
   ];
 
   return (
     <AccountContext.Provider value={{ session, loading, refreshSession: checkSession }}>
-      <div className="flex flex-col min-h-screen bg-[#fafaf9]">
+      <div className="flex flex-col min-h-screen bg-[#F5EFE6] text-[#2B2620]">
         <Header />
 
         <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
             
             {/* ── Desktop Sidebar ── */}
-            <aside className="hidden lg:flex w-72 bg-white border border-gray-100 rounded-3xl p-5 shadow-3xs flex-col flex-shrink-0">
+            <aside className="hidden lg:flex w-72 bg-white border border-[#EDE3D3] rounded-3xl p-6 shadow-3xs flex-col flex-shrink-0">
               {/* Header info */}
-              <div className="flex items-center gap-3 pb-5 border-b border-gray-50 mb-5">
-                <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-lg font-black">
+              <div className="flex items-center gap-3 pb-5 border-b border-[#EDE3D3] mb-5">
+                <div className="h-12 w-12 rounded-2xl bg-[#EDE3D3] text-[#2B2620] flex items-center justify-center text-[#8B5E3C] text-base font-serif font-bold border border-[#EDE3D3]">
                   {session.name.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-xs font-black text-gray-800 truncate">{session.name}</h4>
+                  <h4 className="font-serif text-sm font-semibold text-[#2B2620] truncate">{session.name}</h4>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                      session.planType === "PLANO" 
-                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200" 
-                        : "bg-gray-100 text-gray-500 border border-gray-200"
-                    }`}>
-                      {session.planType === "PLANO" ? "Corporativo" : "Varejo"}
+                    <span className="bg-[#8B5E3C] text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
+                      Membro Gold Atelier
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Menu */}
-              <nav className="space-y-1 font-sans text-xs">
+              <nav className="space-y-1.5 font-sans text-xs">
                 {menuItems.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 group relative
+                      className={`flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 group relative
                         ${isActive
-                          ? "bg-primary text-white shadow-xs"
-                          : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                          ? "bg-[#1A1A1A] text-white shadow-xs"
+                          : "text-[#7A6F63] hover:text-[#2B2620] hover:bg-[#FAF7F2]"
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className={`h-4 w-4 ${isActive ? "text-white" : "text-gray-400 group-hover:text-gray-800"}`} />
-                        <span className="font-bold">{item.label}</span>
+                        <item.icon className={`h-4 w-4 ${isActive ? "text-[#EDE3D3]" : "text-[#8B5E3C] group-hover:text-[#2B2620]"}`} />
+                        <span className="font-semibold">{item.label}</span>
                       </div>
                       <ChevronRight className={`h-3.5 w-3.5 ${isActive ? "text-white/60" : "text-gray-300 group-hover:text-gray-500"}`} />
                     </Link>
@@ -230,7 +238,7 @@ export default function AccountLayout({
             )}
 
             {/* ── Main Content Area ── */}
-            <div className="flex-1 w-full bg-white border border-gray-100 rounded-3xl p-5 md:p-8 shadow-3xs min-w-0">
+            <div key={pathname} className="flex-1 w-full bg-white border border-gray-100 rounded-3xl p-5 md:p-8 shadow-3xs min-w-0">
               {children}
             </div>
 

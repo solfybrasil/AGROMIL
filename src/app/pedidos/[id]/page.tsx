@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CategoryMenu from "@/components/CategoryMenu";
 import { useState, useEffect, use, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import {
   ArrowLeft,
   Clock,
@@ -113,9 +113,9 @@ function LoaderPulse() {
   );
 }
 
-function OrderTrackingPageInner({ params }: OrderTrackingPageProps) {
-  const resolvedParams = use(params);
-  const orderId = resolvedParams.id;
+function OrderTrackingPageInner() {
+  const urlParams = useParams();
+  const orderId = (urlParams?.id as string) || "";
   const searchParams = useSearchParams();
   const isNewOrder = searchParams.get("novo") === "1";
 
@@ -480,7 +480,7 @@ function OrderTrackingPageInner({ params }: OrderTrackingPageProps) {
   );
 }
 
-export default function OrderTrackingPage({ params }: OrderTrackingPageProps) {
+export default function OrderTrackingPage() {
   return (
     <Suspense fallback={
       <div className="flex flex-col min-h-screen bg-[#fafaf9] items-center justify-center gap-3">
@@ -490,7 +490,7 @@ export default function OrderTrackingPage({ params }: OrderTrackingPageProps) {
         <span className="text-xs font-bold text-gray-400 animate-pulse">Carregando rastreamento...</span>
       </div>
     }>
-      <OrderTrackingPageInner params={params} />
+      <OrderTrackingPageInner />
     </Suspense>
   );
 }

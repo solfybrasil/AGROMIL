@@ -2,7 +2,7 @@
 
 import { useCartStore, Product } from "@/lib/cart-store";
 import { useAddToCart } from "@/lib/useAddToCart";
-import { Plus, Minus, ShoppingCart } from "lucide-react";
+import { Plus, Minus, ShoppingBag, Check, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 interface AddToCartSectionProps {
@@ -10,9 +10,9 @@ interface AddToCartSectionProps {
 }
 
 export default function AddToCartSection({ product }: AddToCartSectionProps) {
-  const { toggleCart } = useCartStore();
   const addToCart = useAddToCart();
   const [quantity, setQuantity] = useState(1);
+  const [justAdded, setJustAdded] = useState(false);
 
   const handleDecrease = () => {
     if (quantity > 1) {
@@ -28,59 +28,78 @@ export default function AddToCartSection({ product }: AddToCartSectionProps) {
   const handleAddToCart = () => {
     if (product.stock <= 0) return;
     addToCart(product, quantity);
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1500);
   };
 
   const isOutOfStock = product.stock <= 0;
 
   return (
-    <div className="space-y-4 pt-4 border-t border-gray-100 select-none">
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Quantity control */}
+    <div className="space-y-4 pt-6 border-t border-[#EDE3D3] select-none">
+      <div className="flex flex-col sm:flex-row items-stretch gap-3">
+        {/* Quantity selector */}
         {!isOutOfStock && (
-          <div className="flex items-center border border-gray-300 rounded-lg bg-white h-12">
+          <div className="flex items-center justify-between border border-[#EDE3D3] rounded-2xl bg-white h-13 px-2 w-full sm:w-36 flex-shrink-0 shadow-3xs">
             <button
               onClick={handleDecrease}
-              className="px-3.5 h-full text-gray-500 hover:text-primary hover:bg-gray-50 transition-colors rounded-l-lg border-r border-gray-200"
+              className="w-10 h-10 flex items-center justify-center text-[#5C5346] hover:text-[#1A1A1A] hover:bg-[#FAF7F2] rounded-xl transition-colors"
+              title="Diminuir"
             >
               <Minus className="h-4 w-4" />
             </button>
-            <span className="w-12 text-center text-sm font-extrabold text-gray-800">
+            <span className="text-sm font-black text-[#2B2620]">
               {quantity}
             </span>
             <button
               onClick={handleIncrease}
-              className="px-3.5 h-full text-gray-500 hover:text-primary hover:bg-gray-50 transition-colors rounded-r-lg border-l border-gray-200"
+              className="w-10 h-10 flex items-center justify-center text-[#5C5346] hover:text-[#1A1A1A] hover:bg-[#FAF7F2] rounded-xl transition-colors"
+              title="Aumentar"
             >
               <Plus className="h-4 w-4" />
             </button>
           </div>
         )}
 
-        {/* Add button */}
+        {/* Primary Add to Cart Button */}
         <button
           onClick={handleAddToCart}
           disabled={isOutOfStock}
-          className={`flex-1 h-12 flex items-center justify-center gap-2 rounded-lg font-bold text-sm shadow-sm transition-all ${
+          className={`flex-1 h-13 flex items-center justify-center gap-2.5 rounded-2xl font-bold text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 shadow-md ${
             isOutOfStock
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-primary hover:bg-primary-dark text-white hover:shadow-md active:scale-98"
+              ? "bg-[#E5E0D8] text-[#9E9589] cursor-not-allowed border border-[#D5CFC5]"
+              : justAdded
+              ? "bg-[#2d6a4f] text-white animate-cart-pop"
+              : "bg-[#1A1A1A] hover:bg-[#8B5E3C] text-white active:scale-[0.99] cursor-pointer"
           }`}
         >
-          <ShoppingCart className="h-5 w-5" />
-          <span>{isOutOfStock ? "Indisponível" : "Adicionar ao Carrinho"}</span>
+          {justAdded ? (
+            <>
+              <Check className="h-4.5 w-4.5" />
+              <span>Adicionado à Sacola</span>
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="h-4.5 w-4.5" />
+              <span>{isOutOfStock ? "Indisponível no Momento" : "Adicionar à Sacola"}</span>
+            </>
+          )}
         </button>
       </div>
 
       {/* Stock warning */}
-      {product.stock > 0 ? (
-        <p className="text-[11px] text-[#2d6a4f] font-semibold">
-          ✓ Em estoque: {product.stock} unidades disponíveis.
-        </p>
-      ) : (
-        <p className="text-[11px] text-red-500 font-semibold">
-          ✗ Produto esgotado. Entre em contato para previsão de chegada.
-        </p>
-      )}
+      <div className="flex items-center gap-2 text-xs font-medium">
+        {product.stock > 0 ? (
+          <p className="text-[#2d6a4f] flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#2d6a4f] inline-block animate-pulse" />
+            <span>Em Estoque — envio imediato ({product.stock} disponíveis)</span>
+          </p>
+        ) : (
+          <p className="text-rose-600 flex items-center gap-1.5 font-semibold">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>Produto Esgotado — entre em contato para reserva.</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

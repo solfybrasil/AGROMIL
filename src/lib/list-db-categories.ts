@@ -5,7 +5,7 @@ async function run() {
   try {
     const categories = await dbService.getCategories();
     console.log(`Found ${categories.length} categories:`);
-    categories.forEach((c) => {
+    categories.forEach((c: any) => {
       console.log(`- ID: ${c.id} | Name: ${c.name} | Slug: ${c.slug}`);
     });
   } catch (error) {

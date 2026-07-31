@@ -1,189 +1,275 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { heroStorage } from "@/lib/indexed-db";
 
-interface Slide {
+interface HeroSlide {
+  tag?: string;
+  badge?: string;
   title: string;
   subtitle: string;
-  buttonText: string;
-  buttonLink: string;
-  imageUrl: string;
-  badge: string;
-  overlayColor: string; // css gradient stop color (e.g. "#1b4332")
+  buttonText?: string;
+  buttonLink?: string;
+  link?: string;
+  imageUrl?: string;
+  image?: string;
+  step?: string;
 }
 
-const DEFAULT_SLIDES: Slide[] = [
+const DEFAULT_SLIDES: HeroSlide[] = [
   {
-    title: "Festival de Jardinagem",
-    subtitle: "Até 20% de Desconto em adubos orgânicos, vasos auto-irrigáveis e sementes selecionadas.",
-    buttonText: "Ver Jardinagem",
-    buttonLink: "/categoria/jardinagem",
-    imageUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?q=80&w=1600&auto=format&fit=crop",
-    badge: "Oferta Especial",
-    overlayColor: "#1b4332",
+    tag: "COLEÇÃO EDITORIAL 2026",
+    title: "Eleve Seu Estilo Diário",
+    subtitle: "Peças atemporais desenvolvidas para conforto superior.",
+    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop",
+    link: "/categoria/vestidos",
+    buttonText: "Comprar Agora",
+    step: "01",
   },
   {
-    title: "Rações Premium & Pet Shop",
-    subtitle: "Nutrição e saúde para o seu pet com entrega rápida em Itu/SP. As melhores marcas.",
-    buttonText: "Ver Pet Shop",
-    buttonLink: "/categoria/petshop",
-    imageUrl: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=1600&auto=format&fit=crop",
-    badge: "Novidades Pet",
-    overlayColor: "#2d4a3e",
+    tag: "LANÇAMENTO DE INVERNO",
+    title: "Silhuetas Minimalistas",
+    subtitle: "Seda e linho puro em cortes de alta alfaiataria.",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1920&auto=format&fit=crop",
+    link: "/categoria/conjuntos",
+    buttonText: "Ver Coleção",
+    step: "02",
   },
   {
-    title: "Ferramentas Rurais Tramontina",
-    subtitle: "Facilite sua poda, plantio e colheita com ferramentas de aço temperado de alta qualidade.",
-    buttonText: "Ver Ferramentas",
-    buttonLink: "/categoria/ferramentas",
-    imageUrl: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?q=80&w=1600&auto=format&fit=crop",
-    badge: "Alta Durabilidade",
-    overlayColor: "#1a2f23",
+    tag: "ACESSÓRIOS AUTORAIS",
+    title: "Detalhes Que Definem Luxo",
+    subtitle: "Bolsas, calçados e joias minimalistas autorais.",
+    image: "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?q=80&w=1920&auto=format&fit=crop",
+    link: "/categoria/acessorios",
+    buttonText: "Ver Acessórios",
+    step: "03",
   },
 ];
 
-// Load custom slides from localStorage (saved by admin hero editor)
-function loadSlides(): Slide[] {
-  if (typeof window === "undefined") return DEFAULT_SLIDES;
-  try {
-    const saved = localStorage.getItem("agromil_hero_slides");
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return DEFAULT_SLIDES;
-}
-
 export default function HeroSlider() {
-  const [current, setCurrent] = useState(0);
-  const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
-  const [mounted, setMounted] = useState(false);
+  const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_SLIDES);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState(0);
+
+  const loadSlides = async () => {
+    try {
+      const stored = await heroStorage.getSlides();
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        const mapped = stored.map((s: any, idx: number) => ({
+          tag: s.badge || s.tag || `NOVIDADE 0${idx + 1}`,
+          title: s.title,
+          subtitle: s.subtitle,
+          image: s.imageUrl || s.image,
+          link: s.buttonLink || s.link || "/categoria/vestidos",
+          buttonText: s.buttonText || "Comprar Agora",
+          step: `0${idx + 1}`,
+        }));
+        setSlides(mapped);
+        return;
+      }
+    } catch {}
+    setSlides(DEFAULT_SLIDES);
+  };
 
   useEffect(() => {
-    setMounted(true);
-    setSlides(loadSlides());
+    loadSlides();
+    const handleStorage = (e: StorageEvent) => {
+      if (!e.key || e.key === "siluet_hero_slides") loadSlides();
+    };
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      bc = new BroadcastChannel("siluet_hero_channel");
+      bc.onmessage = () => loadSlides();
+    }
+    if (typeof window !== "undefined") {
+      window.addEventListener("siluet_hero_updated", loadSlides);
+      window.addEventListener("storage", handleStorage);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("siluet_hero_updated", loadSlides);
+        window.removeEventListener("storage", handleStorage);
+      }
+      if (bc) bc.close();
+    };
   }, []);
 
+  // Auto-advance
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % slides.length);
+    if (slides.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, [slides.length]);
 
-  const handlePrev = () => setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-  const handleNext = () => setCurrent((prev) => (prev + 1) % slides.length);
+  const activeIdx = Math.min(currentSlide, slides.length - 1);
+  const slide = slides[activeIdx] || slides[0];
 
-  if (!mounted) {
-    return (
-      <section className="relative w-full h-[280px] sm:h-[380px] md:h-[580px] bg-[#1b4332]" />
-    );
-  }
+  const goNext = () => setCurrentSlide((p) => (p + 1) % slides.length);
+  const goPrev = () => setCurrentSlide((p) => (p - 1 + slides.length) % slides.length);
+
+  // Touch swipe
+  const onTouchStart = (e: React.TouchEvent) => {
+    setDragStart(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const diff = dragStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) { diff > 0 ? goNext() : goPrev(); }
+    setIsDragging(false);
+  };
 
   return (
-    <section className="relative w-full h-[280px] sm:h-[380px] md:h-[580px] overflow-hidden select-none">
-      {/* Slides */}
-      {slides.map((slide, idx) => {
-        const isActive = idx === current;
-        return (
-          <div
+    <section
+      className="relative w-full h-[260px] sm:h-[480px] lg:h-[680px] bg-[#2B2620] overflow-hidden select-none border-b border-[#EDE3D3]"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Background images */}
+      {slides.map((item, idx) => (
+        <div
+          key={idx}
+          className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+            idx === activeIdx ? "opacity-100 z-0" : "opacity-0 -z-10"
+          }`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.image || item.imageUrl}
+            alt={item.title}
+            className="w-full h-full filter brightness-90"
+            style={{ objectFit: "cover", objectPosition: "top" }}
+          />
+        </div>
+      ))}
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#F5EFE6] via-[#F5EFE6]/80 sm:via-[#F5EFE6]/70 to-transparent z-10 lg:w-3/4" />
+      {/* Bottom gradient for mobile — text fallback */}
+      <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-[#F5EFE6]/60 to-transparent z-10 sm:hidden" />
+
+      {/* ── Desktop: slide numbers right ── */}
+      <div className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 hidden sm:flex flex-col items-center gap-6 z-20">
+        {slides.map((item, idx) => (
+          <button
             key={idx}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
-              isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-            }`}
+            onClick={() => setCurrentSlide(idx)}
+            className="flex flex-col items-center group focus:outline-none"
           >
-            {/* Full-bleed background image */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={slide.imageUrl}
-              alt={slide.title}
-              className={`absolute inset-0 w-full h-full object-cover transition-transform duration-[8000ms] ease-linear ${
-                isActive ? "scale-110" : "scale-100"
+            <span
+              className={`text-xs font-mono font-semibold transition-colors duration-300 ${
+                idx === activeIdx ? "text-[#1A1A1A] scale-110 font-bold" : "text-gray-400 group-hover:text-gray-600"
+              }`}
+            >
+              {item.step || `0${idx + 1}`}
+            </span>
+            <div
+              className={`w-0.5 mt-1 transition-all duration-300 ${
+                idx === activeIdx ? "h-8 bg-[#1A1A1A]" : "h-3 bg-gray-300 group-hover:h-5"
               }`}
             />
+          </button>
+        ))}
+      </div>
 
-            {/* Responsive overlay gradient: vertical on mobile, horizontal on desktop */}
-            <style dangerouslySetInnerHTML={{__html: `
-              .overlay-gradient-${idx} {
-                background: linear-gradient(to top, ${slide.overlayColor}fd 0%, ${slide.overlayColor}b0 55%, ${slide.overlayColor}10 100%);
-              }
-              @media (min-width: 768px) {
-                .overlay-gradient-${idx} {
-                  background: linear-gradient(to right, ${slide.overlayColor}ee 0%, ${slide.overlayColor}99 45%, ${slide.overlayColor}33 80%, transparent 100%) !important;
-                }
-              }
-            `}} />
-            <div className={`absolute inset-0 overlay-gradient-${idx}`} />
-            
-            {/* Bottom darkening for the dots */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+      {/* Content */}
+      <div className="relative max-w-[1440px] mx-auto h-full px-3 sm:px-5 lg:px-6 flex flex-col justify-center sm:justify-between sm:py-10 lg:py-14 z-20">
 
-            {/* Text content — bottom-aligned on mobile, centered on desktop */}
-            <div className="absolute inset-0 flex items-end pb-12 md:items-center md:pb-0">
-              <div className="max-w-7xl mx-auto w-full px-5 sm:px-10 lg:px-16">
-                <div className="max-w-xl space-y-2 md:space-y-4 text-white">
-                  <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-xs text-[#e2b13c] text-[8px] md:text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full border border-white/10 shadow-xs">
-                    ✦ {slide.badge}
-                  </span>
-
-                  <h1 className="font-serif text-lg sm:text-3xl md:text-5xl lg:text-6xl font-black leading-[1.15] drop-shadow-md">
-                    {slide.title}
-                  </h1>
-
-                  <p className="text-[10px] sm:text-sm md:text-base text-white/80 leading-relaxed font-semibold max-w-xs sm:max-w-md drop-shadow line-clamp-2 sm:line-clamp-none">
-                    {slide.subtitle}
-                  </p>
-
-                  <div className="pt-1.5 md:pt-2">
-                    <Link
-                      href={slide.buttonLink}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-[#e2b13c] hover:bg-[#cfa132] text-[#1b4332] font-black text-[11px] md:text-sm py-2 px-4 md:py-3.5 md:px-8 shadow-md hover:shadow-lg transition-all active:scale-95 hover:-translate-y-0.5"
-                    >
-                      <span>{slide.buttonText}</span>
-                      <ArrowRight className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* ── Mobile layout: centered overlay text ── */}
+        <div className="flex flex-col justify-end h-full pb-4 sm:hidden">
+          <div className="inline-flex items-center gap-1.5 bg-[#EDE3D3]/70 text-[#8B5E3C] text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full w-fit mb-2">
+            <Sparkles className="h-2.5 w-2.5" />
+            <span>{slide.tag}</span>
           </div>
-        );
-      })}
+          <h1 className="font-serif text-xl font-semibold text-[#2B2620] leading-tight tracking-tight mb-1.5">
+            {slide.title}
+          </h1>
+          <p className="text-[10px] text-[#7A6F63] leading-relaxed mb-3 max-w-[220px]">
+            {slide.subtitle}
+          </p>
+          <Link
+            href={slide.link || slide.buttonLink || "/"}
+            className="inline-flex items-center gap-2 bg-[#1A1A1A] hover:bg-[#8B5E3C] text-white font-bold text-[10px] py-2.5 px-5 w-fit transition-colors"
+          >
+            <span>{slide.buttonText || "Comprar Agora"}</span>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
 
-      {/* Navigation Arrows (Desktop only) */}
-      <button
-        onClick={handlePrev}
-        className="hidden md:flex absolute top-1/2 left-4 -translate-y-1/2 z-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 p-2.5 text-white hover:bg-white hover:text-[#1b4332] shadow-sm hover:shadow transition-all active:scale-90"
-        title="Slide Anterior"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
-      <button
-        onClick={handleNext}
-        className="hidden md:flex absolute top-1/2 right-4 -translate-y-1/2 z-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 p-2.5 text-white hover:bg-white hover:text-[#1b4332] shadow-sm hover:shadow transition-all active:scale-90"
-        title="Próximo Slide"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
+        {/* ── Desktop layout ── */}
+        <div className="hidden sm:block max-w-xl my-auto space-y-5 pt-4">
+          <div className="inline-flex items-center gap-2 bg-[#EDE3D3]/80 backdrop-blur-sm text-[#8B5E3C] text-[11px] font-semibold uppercase tracking-widest px-3.5 py-1.5 rounded-full border border-[#8B5E3C]/20">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{slide.tag}</span>
+          </div>
+          <div>
+            <span className="font-script text-3xl sm:text-4xl text-[#8B5E3C] block capitalize font-normal leading-none mb-1">
+              Atelier &amp; Moda Exclusiva
+            </span>
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#2B2620] leading-[1.08] tracking-tight">
+              {slide.title}
+            </h1>
+          </div>
+          <p className="text-xs sm:text-sm md:text-base text-[#7A6F63] leading-relaxed font-normal max-w-lg">
+            {slide.subtitle}
+          </p>
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <Link
+              href={slide.link || slide.buttonLink || "/"}
+              className="inline-flex items-center gap-3 bg-[#1A1A1A] hover:bg-[#8B5E3C] text-white font-medium text-sm py-4 px-8 transition-colors shadow-md group"
+            >
+              <span>Comprar Agora</span>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/categoria/vestidos"
+              className="inline-flex items-center gap-2 bg-white/60 hover:bg-white text-[#2B2620] font-medium text-sm py-4 px-7 border border-[#2B2620]/30 transition-colors backdrop-blur-sm"
+            >
+              <span>Ver Lookbook</span>
+            </Link>
+          </div>
+        </div>
+      </div>
 
-      {/* Slide counter + indicator dots */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+      {/* ── Mobile: swipe dots indicator ── */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-30 sm:hidden">
         {slides.map((_, idx) => (
           <button
             key={idx}
-            onClick={() => setCurrent(idx)}
+            onClick={() => setCurrentSlide(idx)}
             className={`rounded-full transition-all duration-300 ${
-              idx === current ? "w-6 h-1.5 bg-[#e2b13c]" : "w-1.5 h-1.5 bg-white/40 hover:bg-white/80"
+              idx === activeIdx
+                ? "w-4 h-1.5 bg-[#8B5E3C]"
+                : "w-1.5 h-1.5 bg-[#8B5E3C]/30"
             }`}
-            title={`Slide ${idx + 1}`}
           />
         ))}
       </div>
 
-      {/* Slide number overlay top-right (Desktop only) */}
-      <div className="hidden md:block absolute top-4 right-16 z-20 text-white/50 text-[10px] font-black uppercase tracking-widest select-none">
-        {current + 1} / {slides.length}
-      </div>
+      {/* ── Mobile: prev/next arrows ── */}
+      {slides.length > 1 && (
+        <>
+          <button
+            onClick={goPrev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 sm:hidden bg-white/60 backdrop-blur-sm p-1.5 rounded-full shadow-sm active:scale-90 transition-transform"
+            aria-label="Anterior"
+          >
+            <ChevronLeft className="h-4 w-4 text-[#2B2620]" />
+          </button>
+          <button
+            onClick={goNext}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 sm:hidden bg-white/60 backdrop-blur-sm p-1.5 rounded-full shadow-sm active:scale-90 transition-transform"
+            aria-label="Próximo"
+          >
+            <ChevronRight className="h-4 w-4 text-[#2B2620]" />
+          </button>
+        </>
+      )}
     </section>
   );
 }

@@ -35,3 +35,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message || "Erro ao cadastrar produto." }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    await dbService.deleteAllProducts();
+    return NextResponse.json({ message: "Todos os produtos foram excluídos com sucesso." });
+  } catch (error: any) {
+    console.error("DELETE /api/produtos error:", error);
+    return NextResponse.json({ error: error.message || "Erro ao excluir todos os produtos." }, { status: 500 });
+  }
+}

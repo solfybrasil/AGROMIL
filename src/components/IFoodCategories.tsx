@@ -1,87 +1,84 @@
 "use client";
 
 import Link from "next/link";
-import { Flower2, Dog, Wheat, Wrench, Droplet, ShieldCheck } from "lucide-react";
+import { Sparkles, ShoppingBag, Flame, Crown, Gem, Footprints } from "lucide-react";
 
 interface CategoryBubble {
   name: string;
   slug: string;
   icon: React.ComponentType<any>;
-  bgColor: string;
-  iconColor: string;
+  imageUrl: string;
 }
 
 const BUBBLES: CategoryBubble[] = [
   {
-    name: "Jardinagem",
-    slug: "jardinagem",
-    icon: Flower2,
-    bgColor: "bg-emerald-50 hover:bg-emerald-100/70 border-emerald-100",
-    iconColor: "text-emerald-700",
+    name: "Vestidos Midis",
+    slug: "vestidos",
+    icon: Crown,
+    imageUrl: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=200",
   },
   {
-    name: "Pet Shop",
-    slug: "petshop",
-    icon: Dog,
-    bgColor: "bg-orange-50 hover:bg-orange-100/70 border-orange-100",
-    iconColor: "text-orange-700",
+    name: "Tops & Blusas",
+    slug: "tops-blusas",
+    icon: Sparkles,
+    imageUrl: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=200",
   },
   {
-    name: "Agropecuária",
-    slug: "agropecuaria",
-    icon: Wheat,
-    bgColor: "bg-amber-50 hover:bg-amber-100/70 border-amber-100",
-    iconColor: "text-amber-700",
+    name: "Conjuntos Chic",
+    slug: "conjuntos",
+    icon: Flame,
+    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=200",
   },
   {
-    name: "Ferramentas",
-    slug: "ferramentas",
-    icon: Wrench,
-    bgColor: "bg-blue-50 hover:bg-blue-100/70 border-blue-100",
-    iconColor: "text-blue-700",
+    name: "Calças Wide Leg",
+    slug: "calcas-jeans",
+    icon: ShoppingBag,
+    imageUrl: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=200",
   },
   {
-    name: "Irrigação",
-    slug: "irrigacao",
-    icon: Droplet,
-    bgColor: "bg-cyan-50 hover:bg-cyan-100/70 border-cyan-100",
-    iconColor: "text-cyan-700",
+    name: "Bolsas & Accessories",
+    slug: "acessorios",
+    icon: Gem,
+    imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=200",
   },
   {
-    name: "Vestuário & EPI",
-    slug: "vestuario-epi",
-    icon: ShieldCheck,
-    bgColor: "bg-rose-50 hover:bg-rose-100/70 border-rose-100",
-    iconColor: "text-rose-700",
+    name: "Calçados & Mules",
+    slug: "calcados",
+    icon: Footprints,
+    imageUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80&w=200",
   },
 ];
 
 export default function IFoodCategories() {
   return (
-    <section className="w-full bg-[#fdfdfb] py-8 border-b border-gray-100 select-none">
+    <section className="w-full bg-[#FAF7F2] py-10 border-b border-[#E8DFD8] select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h3 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest text-center mb-6">
-          Navegue por Categoria
+        <h3 className="text-xs font-bold text-[#A04728] uppercase tracking-widest text-center mb-6">
+          Explorar por Categoria Shein
         </h3>
-        
-        {/* Horizontal scroll container (centered on desktop, swipable on mobile) */}
-        <div className="flex items-center justify-start md:justify-center gap-6 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+
+        {/* Swipable Circular Categories */}
+        <div className="flex items-center justify-start md:justify-center gap-6 md:gap-10 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
           {BUBBLES.map((bubble, idx) => {
-            const Icon = bubble.icon;
-            
             return (
               <Link
                 key={idx}
                 href={`/categoria/${bubble.slug}`}
-                className="flex flex-col items-center gap-2.5 snap-center min-w-[80px] group"
+                className="flex flex-col items-center gap-3 snap-center min-w-[85px] group"
               >
-                {/* Bubble Circle */}
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center border shadow-2xs transition-all duration-300 group-hover:scale-108 group-hover:shadow-md active:scale-95 ${bubble.bgColor}`}>
-                  <Icon className={`h-7 w-7 transition-transform group-hover:rotate-6 ${bubble.iconColor}`} />
+                {/* Image Bubble Circle */}
+                <div className="w-20 h-20 rounded-full p-1 border-2 border-[#C86D51]/30 bg-white shadow-sm transition-all duration-300 group-hover:scale-108 group-hover:border-[#A04728] group-hover:shadow-md relative overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={bubble.imageUrl}
+                    alt={bubble.name}
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                  <div className="absolute inset-0 bg-[#5C2818]/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                
-                {/* Bubble Label */}
-                <span className="text-[11px] font-extrabold text-gray-700 text-center tracking-tight truncate max-w-[90px] group-hover:text-primary transition-colors">
+
+                {/* Label */}
+                <span className="text-xs font-semibold text-[#2B1D19] text-center tracking-tight truncate max-w-[100px] group-hover:text-[#A04728] transition-colors">
                   {bubble.name}
                 </span>
               </Link>

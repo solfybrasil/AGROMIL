@@ -1,50 +1,66 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fdfdfb;
-  --foreground: #1a2f23;
-  --card-bg: #ffffff;
-  --primary-dark: #1b4332;
-  --primary: #2d6a4f;
-  --primary-light: #e8f5e9;
-  --accent-gold: #e2b13c;
-  --border-color: #e5e7eb;
+  --bg-primary: #F5EFE6;
+  --bg-secondary: #EDE3D3;
+  --text-primary: #2B2620;
+  --text-muted: #7A6F63;
+  --brown-accent: #8B5E3C;
+  --accent-dark: #1A1A1A;
+  --white: #FFFFFF;
+  --font-serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-script: 'Great Vibes', 'Alex Brush', cursive;
 }
 
 @theme {
-  --color-primary-dark: var(--primary-dark);
-  --color-primary: var(--primary);
-  --color-primary-light: var(--primary-light);
-  --color-accent-gold: var(--accent-gold);
-  --color-card-bg: var(--card-bg);
-  --color-border-color: var(--border-color);
-  --font-serif: var(--font-sans), sans-serif;
-  --font-sans: var(--font-sans), sans-serif;
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-brown-accent: var(--brown-accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-card-bg: var(--white);
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
+  --font-script: var(--font-script);
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: var(--font-sans);
+}
+
+.font-script {
+  font-family: 'Great Vibes', 'Alex Brush', cursive;
+}
+
+.font-handwriting {
+  font-family: 'Alex Brush', 'Great Vibes', cursive;
+}
+
+.font-serif-brand {
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
 }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #FAF7F2;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c2c2c2;
+  background: #D9C8B8;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: #A04728;
 }
 
 /* Custom CSS Keyframe Animations */
@@ -107,9 +123,9 @@ body {
 }
 
 @keyframes pulseSubtle {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(45, 106, 79, 0.4); }
-  70% { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(45, 106, 79, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(45, 106, 79, 0); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(92, 40, 24, 0.3); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(92, 40, 24, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(92, 40, 24, 0); }
 }
 
 .animate-cart-pop {
@@ -131,8 +147,8 @@ body {
 
 .hover-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 20px -8px rgba(27, 67, 50, 0.08), 0 8px 16px -8px rgba(0, 0, 0, 0.04);
-  border-color: rgba(45, 106, 79, 0.15);
+  box-shadow: 0 14px 24px -8px rgba(74, 21, 18, 0.12), 0 8px 16px -8px rgba(0, 0, 0, 0.04);
+  border-color: rgba(160, 71, 40, 0.25);
 }
 
 .active-pop {
@@ -148,31 +164,6 @@ body {
   transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.35s ease;
 }
 
-/* Custom Order Tracking Animations */
-@keyframes truckDrive {
-  0% { transform: translateX(0) scaleX(1); }
-  20% { transform: translateX(4px) scaleX(1.03) translateY(-1px); }
-  40% { transform: translateX(-1px) scaleX(0.98) translateY(1px); }
-  60% { transform: translateX(5px) scaleX(1.02) translateY(-0.5px); }
-  80% { transform: translateX(-2px) scaleX(1) translateY(0.5px); }
-  100% { transform: translateX(0) scaleX(1); }
-}
-
-.animate-truck-drive {
-  display: inline-block;
-  animation: truckDrive 2s ease-in-out infinite;
-}
-
-@keyframes activePulse {
-  0% { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0.6); }
-  70% { box-shadow: 0 0 0 8px rgba(45, 106, 79, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(45, 106, 79, 0); }
-}
-
-.animate-active-pulse {
-  animation: activePulse 2s infinite;
-}
-
 /* Cart toast slide-up + fade */
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(16px) scale(0.98); }
@@ -183,4 +174,61 @@ body {
   animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ── Mobile App Utilities ─────────────────────────────────────────── */
 
+/* Push content above the fixed bottom nav on mobile */
+.pb-mobile-nav {
+  padding-bottom: calc(3.75rem + env(safe-area-inset-bottom));
+}
+
+/* Thin scrollbars on mobile */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #D9C8B8;
+    border-radius: 2px;
+  }
+
+  /* Prevent body scroll behind overlays */
+  body.mobile-menu-open {
+    overflow: hidden;
+  }
+}
+
+/* Horizontal scroll chip row — no scrollbar visible */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth swipe animation for hero on mobile */
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Line clamp utility */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

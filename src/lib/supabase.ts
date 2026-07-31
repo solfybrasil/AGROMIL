@@ -1,12 +1,29 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const getEnv = (key: string, viteKey: string) => {
+  if (typeof process !== "undefined" && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  // @ts-ignore
+  if (typeof import.meta !== "undefined" && import.meta.env && import.meta.env[viteKey]) {
+    // @ts-ignore
+    return import.meta.env[viteKey];
+  }
+  return undefined;
+};
+
+const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL");
+const supabaseServiceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_SERVICE_ROLE_KEY");
+const supabasePublishableKey = getEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY");
+
+const isValidUrl = (url?: string): boolean => {
+  if (!url || typeof url !== "string") return false;
+  return url.startsWith("http://") || url.startsWith("https://");
+};
 
 // ── Service Role client (full access, server-side only) ──────────────────────
 export const isSupabaseConfigured = !!(
-  supabaseUrl &&
+  isValidUrl(supabaseUrl) &&
   supabaseServiceKey &&
   !supabaseServiceKey.includes("YOUR_")
 );
@@ -18,7 +35,11 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
   : null;
 
 // ── Anon/Publishable client (read-only public data, fallback) ────────────────
-const isAnonymousConfigured = !!(supabaseUrl && supabasePublishableKey);
+const isAnonymousConfigured = !!(
+  isValidUrl(supabaseUrl) &&
+  supabasePublishableKey &&
+  !supabasePublishableKey.includes("YOUR_")
+);
 
 export const supabaseAnon: SupabaseClient | null = isAnonymousConfigured
   ? createClient(supabaseUrl!, supabasePublishableKey!, {

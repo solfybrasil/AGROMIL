@@ -2,35 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  ClipboardList,
-  Search,
-  Eye,
-  ArrowRight,
-  ArrowLeft,
-  DollarSign,
-  Calendar,
-  AlertCircle,
-  Truck,
-  Sparkles,
-  Phone,
-  MapPin,
-  Volume2,
-  VolumeX,
-  Bell,
-  MessageSquare,
-  CreditCard,
-  Landmark,
-  Zap,
-  StickyNote,
-  Package,
-  Clock,
-  CheckCircle2,
-  TrendingUp,
-  Activity,
-  ChevronDown,
-  ChevronUp,
+  ClipboardList, Search, Eye, ArrowRight, ArrowLeft, DollarSign,
+  Calendar, AlertCircle, Truck, Sparkles, Phone, MapPin, Volume2,
+  VolumeX, Bell, MessageSquare, CreditCard, Landmark, Zap, StickyNote,
+  Package, Clock, CheckCircle2, TrendingUp, Activity, ChevronDown, ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
+import { dbService } from "@/lib/db-service";
 
 interface OrderItem {
   id: string;
@@ -75,17 +53,16 @@ const COLUMNS: Array<{
   borderColor: string;
   icon: any;
 }> = [
-  { status: "NEW", label: "Novos", bgColor: "bg-blue-50/50", textColor: "text-blue-700", dotColor: "bg-blue-500", borderColor: "border-blue-200", icon: Bell },
-  { status: "CONFIRMED", label: "Confirmados", bgColor: "bg-indigo-50/50", textColor: "text-indigo-700", dotColor: "bg-indigo-500", borderColor: "border-indigo-200", icon: CheckCircle2 },
-  { status: "PREPARING", label: "Preparando", bgColor: "bg-amber-50/50", textColor: "text-amber-700", dotColor: "bg-amber-500", borderColor: "border-amber-200", icon: Clock },
-  { status: "SHIPPED", label: "A Caminho", bgColor: "bg-purple-50/50", textColor: "text-purple-700", dotColor: "bg-purple-500", borderColor: "border-purple-200", icon: Truck },
-  { status: "DELIVERED", label: "Entregues", bgColor: "bg-emerald-50/50", textColor: "text-emerald-700", dotColor: "bg-emerald-500", borderColor: "border-emerald-200", icon: Package },
-  { status: "CANCELLED", label: "Cancelados", bgColor: "bg-rose-50/50", textColor: "text-rose-700", dotColor: "bg-rose-500", borderColor: "border-rose-200", icon: AlertCircle },
+  { status: "NEW", label: "Novos", bgColor: "bg-blue-50/70", textColor: "text-blue-700", dotColor: "bg-blue-500", borderColor: "border-blue-200", icon: Bell },
+  { status: "CONFIRMED", label: "Confirmados", bgColor: "bg-indigo-50/70", textColor: "text-indigo-700", dotColor: "bg-indigo-500", borderColor: "border-indigo-200", icon: CheckCircle2 },
+  { status: "PREPARING", label: "Preparando", bgColor: "bg-amber-50/70", textColor: "text-amber-700", dotColor: "bg-amber-500", borderColor: "border-amber-200", icon: Clock },
+  { status: "SHIPPED", label: "A Caminho", bgColor: "bg-purple-50/70", textColor: "text-purple-700", dotColor: "bg-purple-500", borderColor: "border-purple-200", icon: Truck },
+  { status: "DELIVERED", label: "Entregues", bgColor: "bg-emerald-50/70", textColor: "text-emerald-700", dotColor: "bg-emerald-500", borderColor: "border-emerald-200", icon: Package },
+  { status: "CANCELLED", label: "Cancelados", bgColor: "bg-rose-50/70", textColor: "text-rose-700", dotColor: "bg-rose-500", borderColor: "border-rose-200", icon: AlertCircle },
 ];
 
 const STATUS_ORDER: Order["status"][] = ["NEW", "CONFIRMED", "PREPARING", "SHIPPED", "DELIVERED"];
 
-// Generates an 880 Hz beep using Web Audio API
 function playAlertBeep(audioCtx: AudioContext) {
   const oscillator = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();
@@ -110,7 +87,6 @@ export default function AdminOrdersKanban() {
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  // Mobile: which column tab is selected
   const [mobileColIdx, setMobileColIdx] = useState(0);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -120,6 +96,13 @@ export default function AdminOrdersKanban() {
 
   const fetchOrders = async () => {
     try {
+      const localOrders = await dbService.getOrders();
+      if (localOrders && localOrders.length > 0) {
+        setOrders(localOrders as any);
+        setNewOrderCount(localOrders.filter((o: any) => o.status === "NEW").length);
+        setLoading(false);
+      }
+
       const res = await fetch("/api/pedidos");
       if (res.ok) {
         const data: Order[] = await res.json();
@@ -136,9 +119,7 @@ export default function AdminOrdersKanban() {
         const newCount = data.filter((o) => o.status === "NEW").length;
         setNewOrderCount(newCount);
       }
-    } catch (err) {
-      console.warn("Orders API offline. Local state fallback.", err);
-    } finally {
+    } catch {} finally {
       setLoading(false);
     }
   };
@@ -147,7 +128,7 @@ export default function AdminOrdersKanban() {
     if (alarmIntervalRef.current) return;
     alarmIntervalRef.current = setInterval(() => {
       if (!muted && hasInteracted && audioCtxRef.current) {
-        try { playAlertBeep(audioCtxRef.current); } catch (e) { console.warn("Audio playback failed:", e); }
+        try { playAlertBeep(audioCtxRef.current); } catch {}
       }
     }, 8000);
   };
@@ -170,196 +151,172 @@ export default function AdminOrdersKanban() {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       if (alarmIntervalRef.current) clearInterval(alarmIntervalRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (newOrderCount > 0 && !muted && hasInteracted) {
       startAlarm();
       if (audioCtxRef.current) {
-        try { playAlertBeep(audioCtxRef.current); } catch(e) {}
+        try { playAlertBeep(audioCtxRef.current); } catch {}
       }
     } else {
       stopAlarm();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newOrderCount, muted, hasInteracted]);
 
   const moveOrder = async (orderId: string, nextStatus: Order["status"]) => {
     setUpdatingId(orderId);
     try {
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o)));
-      const res = await fetch(`/api/pedidos/${orderId}`, {
+      await fetch(`/api/pedidos/${orderId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus }),
       });
-      if (!res.ok) fetchOrders();
-    } catch (err) {
-      console.error("Failed to update status", err);
+    } catch {
       fetchOrders();
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const getNextStatus = (current: Order["status"]): Order["status"] | null => {
-    const idx = STATUS_ORDER.indexOf(current);
-    if (idx === -1 || idx === STATUS_ORDER.length - 1) return null;
-    return STATUS_ORDER[idx + 1];
-  };
-
-  const getPrevStatus = (current: Order["status"]): Order["status"] | null => {
-    const idx = STATUS_ORDER.indexOf(current);
-    if (idx === -1 || idx === 0) return null;
-    return STATUS_ORDER[idx - 1];
-  };
-
-  const getPaymentInfo = (method: string) => {
-    switch (method) {
-      case "pix": return { label: "Pix", icon: <Zap className="h-3 w-3 text-teal-500" /> };
-      case "card_on_delivery": return { label: "Cartão", icon: <CreditCard className="h-3 w-3 text-blue-500" /> };
-      case "money": return { label: "Dinheiro", icon: <Landmark className="h-3 w-3 text-emerald-500" /> };
-      default: return { label: method, icon: <DollarSign className="h-3 w-3 text-gray-400" /> };
-    }
-  };
-
   const formatPhone = (phone: string) => phone.replace(/\D/g, "");
 
-  const filteredOrders = orders.filter((ord) => {
-    const term = search.toLowerCase();
+  const paymentConfig = (method: string) => {
+    const m = (method || "").toLowerCase();
+    if (m.includes("pix")) return { label: "PIX", icon: <Zap className="h-3 w-3 text-emerald-600" /> };
+    if (m.includes("cart") || m.includes("cred")) return { label: "Cartão de Crédito", icon: <CreditCard className="h-3 w-3 text-purple-600" /> };
+    if (m.includes("boleto")) return { label: "Boleto", icon: <Landmark className="h-3 w-3 text-amber-600" /> };
+    return { label: method || "Dinheiro", icon: <DollarSign className="h-3 w-3 text-gray-500" /> };
+  };
+
+  const filteredOrders = orders.filter((o) => {
+    const q = search.toLowerCase();
     return (
-      ord.clientName.toLowerCase().includes(term) ||
-      ord.id.toLowerCase().includes(term) ||
-      ord.neighborhood.toLowerCase().includes(term) ||
-      (ord.clientPhone || "").includes(term)
+      o.clientName.toLowerCase().includes(q) ||
+      o.id.toLowerCase().includes(q) ||
+      o.clientPhone.includes(q)
     );
   });
 
-  const activeOrdersCount = orders.filter((o) => ["NEW", "CONFIRMED", "PREPARING", "SHIPPED"].includes(o.status)).length;
-  const inProgressRevenue = orders
-    .filter((o) => ["NEW", "CONFIRMED", "PREPARING", "SHIPPED"].includes(o.status))
-    .reduce((sum, o) => sum + Number(o.total), 0);
-
-  // ── Order Card component (shared between mobile & desktop) ─────────
-  const OrderCard = ({ ord }: { ord: Order }) => {
-    const next = getNextStatus(ord.status);
-    const prev = getPrevStatus(ord.status);
-    const isUpdating = updatingId === ord.id;
-    const payInfo = getPaymentInfo(ord.paymentMethod);
+  const renderOrderCard = (ord: Order) => {
+    const currentIdx = STATUS_ORDER.indexOf(ord.status);
+    const prevStatus = currentIdx > 0 ? STATUS_ORDER[currentIdx - 1] : null;
+    const nextStatus = currentIdx >= 0 && currentIdx < STATUS_ORDER.length - 1 ? STATUS_ORDER[currentIdx + 1] : null;
+    const payInfo = paymentConfig(ord.paymentMethod);
     const isExpanded = expandedCard === ord.id;
     const isNew = ord.status === "NEW";
 
     return (
       <div
-        className={`bg-white rounded-xl md:rounded-2xl border p-3 md:p-4 shadow-xs hover-lift flex flex-col gap-2.5 md:gap-3.5 relative overflow-hidden
-          ${isUpdating ? "opacity-60 scale-[0.98] pointer-events-none" : ""}
-          ${isNew ? "border-blue-300 ring-2 ring-blue-100" : "border-gray-100"}`}
+        key={ord.id}
+        onClick={initAudio}
+        className={`bg-white border rounded-2xl p-3.5 shadow-xs space-y-2.5 transition-all relative group ${
+          isNew ? "border-blue-300 ring-2 ring-blue-500/20 bg-blue-50/10" : "border-[#EDE3D3] hover:border-[#8B5E3C]/40"
+        }`}
       >
         {isNew && (
-          <div className="absolute top-0 right-0 bg-blue-500 text-white text-[7px] font-black px-2 py-0.5 rounded-bl-xl uppercase tracking-widest animate-pulse">
+          <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-[7px] font-black px-2 py-0.5 rounded-full shadow-sm animate-bounce">
             Novo
           </div>
         )}
 
         {/* ID & Date */}
-        <div className="flex items-center justify-between text-[8px] font-bold text-gray-400 pr-6 uppercase tracking-wider">
-          <span className="text-primary font-black">#{ord.id.slice(-8).toUpperCase()}</span>
-          <span className="flex items-center gap-1 flex-shrink-0">
-            <Calendar className="h-2.5 w-2.5" />
+        <div className="flex items-center justify-between text-[9px] font-bold text-[#7A6F63] uppercase tracking-wider">
+          <span className="text-[#8B5E3C] font-black">#{ord.id.slice(-8).toUpperCase()}</span>
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
             {new Date(ord.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
           </span>
         </div>
 
         {/* Client */}
-        <div className="space-y-1.5">
-          <h4 className="text-[11px] md:text-xs font-black text-gray-800 truncate">{ord.clientName}</h4>
+        <div className="space-y-1">
+          <h4 className="text-xs font-black text-[#2B2620] truncate">{ord.clientName}</h4>
           <a
             href={`https://wa.me/55${formatPhone(ord.clientPhone)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[8px] font-black text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 px-2 py-1 rounded-lg transition-colors w-fit uppercase"
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[9px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors w-fit uppercase"
             onClick={(e) => e.stopPropagation()}
           >
-            <Phone className="h-2.5 w-2.5" />
+            <Phone className="h-3 w-3 text-emerald-600" />
             <span>{ord.clientPhone}</span>
           </a>
-          <div className="flex items-start gap-1 text-[8px] text-gray-400 font-bold">
-            <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0 mt-0.5" />
-            <span className="leading-snug" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <div className="flex items-start gap-1 text-[9px] text-[#7A6F63] font-medium">
+            <MapPin className="h-3 w-3 text-[#8B5E3C] flex-shrink-0 mt-0.5" />
+            <span className="line-clamp-2">
               {ord.street}, {ord.number}{ord.complement ? ` - ${ord.complement}` : ""} — {ord.neighborhood}
             </span>
           </div>
         </div>
 
         {/* Payment */}
-        <div className="flex items-center gap-1.5 bg-gray-50/80 border border-gray-100 rounded-lg px-2 py-1">
+        <div className="flex items-center gap-1.5 bg-[#F5EFE6] border border-[#EDE3D3] rounded-xl px-2.5 py-1">
           {payInfo.icon}
-          <span className="text-[8px] font-black text-gray-500 uppercase tracking-wider">{payInfo.label}</span>
+          <span className="text-[9px] font-black text-[#2B2620] uppercase tracking-wider">{payInfo.label}</span>
         </div>
 
-        {/* Notes */}
-        {ord.notes && (
-          <div className="bg-amber-50/50 border border-amber-100 rounded-lg px-2.5 py-1.5 flex items-start gap-1">
-            <StickyNote className="h-3 w-3 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-[8px] font-semibold text-amber-800 leading-snug italic">"{ord.notes}"</p>
-          </div>
-        )}
-
         {/* Items */}
-        <div className="bg-gray-50/30 rounded-lg border border-gray-100 overflow-hidden">
-          <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-100">
-            <Package className="h-3 w-3 text-primary" />
-            <span className="text-[8px] font-black text-gray-500 uppercase tracking-wider">
+        <div className="bg-[#F5EFE6]/40 rounded-xl border border-[#EDE3D3] overflow-hidden">
+          <div className="flex items-center gap-1 px-2.5 py-1.5 border-b border-[#EDE3D3]">
+            <Package className="h-3 w-3 text-[#8B5E3C]" />
+            <span className="text-[9px] font-black text-[#2B2620] uppercase tracking-wider">
               {ord.items.length} ite{ord.items.length > 1 ? "ns" : "m"}
             </span>
             {ord.items.length > 2 && (
-              <button
-                onClick={() => setExpandedCard(isExpanded ? null : ord.id)}
-                className="ml-auto text-[7px] font-black text-primary hover:underline uppercase tracking-wider flex items-center gap-0.5"
-              >
-                {isExpanded ? <><ChevronUp className="h-2.5 w-2.5" />menos</> : <><ChevronDown className="h-2.5 w-2.5" />todos</>}
+              <button onClick={() => setExpandedCard(isExpanded ? null : ord.id)}
+                className="ml-auto text-[8px] font-black text-[#8B5E3C] hover:underline uppercase flex items-center gap-0.5">
+                {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </button>
             )}
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-[#EDE3D3]/50">
             {(isExpanded ? ord.items : ord.items.slice(0, 2)).map((item, idx) => (
-              <div key={item.id || idx} className="text-[9px] text-gray-600 font-semibold flex items-center justify-between px-2 py-1">
+              <div key={item.id || idx} className="text-[9px] text-[#2B2620] font-semibold flex items-center justify-between px-2.5 py-1">
                 <span className="truncate mr-2 font-bold">{item.productName || item.product?.name || "Produto"}</span>
-                <span className="flex-shrink-0 font-black text-primary bg-primary-light px-1.5 py-0.5 rounded text-[7px]">x{item.quantity}</span>
+                <span className="flex-shrink-0 font-black text-[#8B5E3C] bg-[#8B5E3C]/10 px-1.5 py-0.5 rounded text-[8px]">x{item.quantity}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Total & Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+        {/* Total & Action Controls */}
+        <div className="flex items-center justify-between pt-2 border-t border-[#EDE3D3]">
           <div>
-            <div className="text-[7px] text-gray-400 font-black uppercase tracking-wider">Total</div>
-            <div className="text-[13px] md:text-sm font-black text-[#1b4332]">
+            <span className="text-[8px] text-[#7A6F63] font-black uppercase tracking-wider block">Total</span>
+            <span className="text-sm font-black text-[#8B5E3C]">
               R$ {Number(ord.total).toFixed(2).replace(".", ",")}
-            </div>
-            {Number(ord.deliveryFee) === 0 && (
-              <div className="text-[7px] text-emerald-600 font-black uppercase tracking-wider">✓ Frete grátis</div>
-            )}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            {prev && (
-              <button onClick={() => moveOrder(ord.id, prev)} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-primary transition-colors cursor-pointer" title="Voltar Status">
+
+          <div className="flex items-center gap-1">
+            {prevStatus && (
+              <button
+                onClick={() => moveOrder(ord.id, prevStatus)}
+                disabled={updatingId === ord.id}
+                className="p-1.5 rounded-xl border border-[#EDE3D3] hover:bg-[#F5EFE6] text-gray-500 hover:text-[#2B2620] transition-colors cursor-pointer"
+                title="Voltar status"
+              >
                 <ArrowLeft className="h-3.5 w-3.5" />
               </button>
             )}
-            <Link href={`/admin/pedidos/${ord.id}`} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-primary transition-colors" title="Ver Detalhes">
-              <Eye className="h-3.5 w-3.5" />
-            </Link>
-            {next && (
-              <button onClick={() => moveOrder(ord.id, next)} className="p-1.5 rounded-lg bg-primary hover:bg-[#122e22] text-white transition-colors cursor-pointer flex items-center gap-1 font-black text-[8px] px-2.5 shadow-xs uppercase tracking-wider" title="Avançar Status">
-                <CheckCircle2 className="h-3 w-3" />
-                <span className="hidden sm:inline">Avançar</span>
+            {nextStatus && (
+              <button
+                onClick={() => moveOrder(ord.id, nextStatus)}
+                disabled={updatingId === ord.id}
+                className="flex items-center gap-1 bg-[#8B5E3C] hover:bg-[#6d482d] text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                <span>Avançar</span>
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             )}
-            {!next && ord.status !== "DELIVERED" && ord.status !== "CANCELLED" && (
-              <button onClick={() => moveOrder(ord.id, "CANCELLED")} className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-500 transition-colors cursor-pointer" title="Cancelar">
+            {ord.status === "NEW" && (
+              <button
+                onClick={() => moveOrder(ord.id, "CANCELLED")}
+                disabled={updatingId === ord.id}
+                className="p-1.5 rounded-xl border border-rose-200 hover:bg-rose-50 text-rose-600 transition-colors cursor-pointer"
+                title="Cancelar pedido"
+              >
                 <AlertCircle className="h-3.5 w-3.5" />
               </button>
             )}
@@ -370,188 +327,108 @@ export default function AdminOrdersKanban() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in-up" onClick={initAudio} onKeyDown={initAudio}>
+    <div className="space-y-6 font-sans text-[#2B2620] animate-fade-in-up">
 
-      {/* ── Header ─────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-serif text-lg md:text-2xl font-extrabold text-[#1b4332]">Painel de Pedidos</h1>
-            {newOrderCount > 0 && (
-              <span className="text-[8px] bg-rose-500 text-white px-2.5 py-1 rounded-full font-black uppercase flex items-center gap-1 animate-pulse shadow-sm">
-                <Bell className="h-3 w-3" />
-                {newOrderCount} novo{newOrderCount > 1 ? "s" : ""}!
-              </span>
-            )}
+      {/* Top Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-[#EDE3D3] shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-[#8B5E3C]/10 border border-[#8B5E3C]/20 text-[#8B5E3C]">
+            <ClipboardList className="h-6 w-6" />
           </div>
-          <p className="text-[9px] md:text-[10px] text-gray-400 font-semibold mt-1 flex items-center gap-1">
-            <Clock className="h-3 w-3 text-primary animate-spin" style={{ animationDuration: "5s" }} />
-            Atualização em tempo real (8s)
-          </p>
+          <div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#8B5E3C] bg-[#8B5E3C]/10 px-2.5 py-0.5 rounded-full border border-[#8B5E3C]/20">
+              Controle Operacional
+            </span>
+            <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#2B2620] tracking-tight mt-0.5">
+              Gestão de Pedidos (Kanban)
+            </h1>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={(e) => { e.stopPropagation(); initAudio(); setMuted((m) => !m); }}
-            className={`flex items-center gap-1.5 text-[9px] md:text-xs font-black uppercase tracking-wider px-3 py-2 rounded-xl border transition-all cursor-pointer shadow-xs
-              ${muted ? "bg-rose-50 border-rose-200 text-rose-600" : newOrderCount > 0 ? "bg-primary text-white border-primary animate-pulse" : "bg-white border-gray-200 text-gray-600"}`}
+            onClick={() => setMuted(!muted)}
+            className={`flex items-center gap-2 text-xs font-black px-4 py-2.5 rounded-2xl border transition-all cursor-pointer ${
+              muted ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
+            }`}
           >
-            {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
-            <span className="hidden sm:inline">{muted ? "Mudo" : "Som Ativo"}</span>
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            <span>{muted ? "Alerta Mudo" : "Som Ativo"}</span>
           </button>
 
-          <div className="relative flex-shrink-0">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-              <Search className="h-3.5 w-3.5" />
-            </div>
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#7A6F63]" />
             <input
-              type="text"
-              placeholder="Filtrar..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-[140px] sm:w-[180px] md:w-[220px] bg-white border border-gray-200 rounded-xl pl-9 py-2 pr-3 text-[10px] font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-xs transition-all placeholder:text-gray-300"
+              type="text" placeholder="Buscar pedido ou cliente..." value={search} onChange={(e) => setSearch(e.target.value)}
+              className="bg-[#F5EFE6]/50 border border-[#EDE3D3] rounded-2xl pl-10 py-2.5 px-4 text-xs font-semibold text-[#2B2620] focus:outline-none focus:ring-4 focus:ring-[#8B5E3C]/15 focus:border-[#8B5E3C] transition-all"
             />
           </div>
         </div>
       </div>
 
-      {/* ── KPI Cards ─────────────────────── */}
-      <div className="grid grid-cols-3 gap-2.5 md:gap-5">
-        <div className="bg-white border border-gray-100 rounded-xl md:rounded-3xl p-3 md:p-5 shadow-xs flex items-center gap-2.5 md:gap-4">
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-xl md:rounded-2xl p-2 md:p-3 flex-shrink-0">
-            <TrendingUp className="h-3.5 w-3.5 md:h-5 md:w-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[7px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest block leading-none">Em Trânsito</span>
-            <span className="text-[11px] md:text-xl font-black text-gray-800 tracking-tight mt-0.5 block leading-tight">
-              R$ {inProgressRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+      {/* Mobile Column Picker */}
+      <div className="lg:hidden flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {COLUMNS.map((col, i) => (
+          <button
+            key={col.status}
+            onClick={() => setMobileColIdx(i)}
+            className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black uppercase transition-all cursor-pointer ${
+              mobileColIdx === i
+                ? "bg-[#8B5E3C] text-white shadow-sm"
+                : "bg-white text-gray-600 border border-[#EDE3D3]"
+            }`}
+          >
+            <span>{col.label}</span>
+            <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-[9px]">
+              {filteredOrders.filter((o) => o.status === col.status).length}
             </span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-100 rounded-xl md:rounded-3xl p-3 md:p-5 shadow-xs flex items-center gap-2.5 md:gap-4">
-          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-600 rounded-xl md:rounded-2xl p-2 md:p-3 flex-shrink-0">
-            <Package className="h-3.5 w-3.5 md:h-5 md:w-5" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[7px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest block leading-none">Em Andamento</span>
-            <span className="text-[11px] md:text-xl font-black text-gray-800 tracking-tight mt-0.5 block leading-tight">{activeOrdersCount} ativos</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-100 rounded-xl md:rounded-3xl p-3 md:p-5 shadow-xs flex items-center gap-2.5 md:gap-4">
-          <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-xl md:rounded-2xl p-2 md:p-3 flex-shrink-0">
-            <Activity className="h-3.5 w-3.5 md:h-5 md:w-5 animate-pulse" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[7px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest block leading-none">Novos</span>
-            <span className="text-[11px] md:text-xl font-black text-gray-800 tracking-tight mt-0.5 block leading-tight">
-              {newOrderCount > 0 ? `${newOrderCount} aguardando` : "Nenhum"}
-            </span>
-          </div>
-        </div>
+          </button>
+        ))}
       </div>
 
+      {/* Kanban Board Grid */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400 gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent" />
-          <span className="text-[10px] font-semibold animate-pulse">Carregando pedidos...</span>
+        <div className="py-16 text-center text-[#7A6F63] text-xs font-semibold animate-pulse">
+          Carregando pedidos...
         </div>
       ) : (
-        <>
-          {/* ══════════════════════════════════════
-              MOBILE: Tab switcher + single column
-          ══════════════════════════════════════ */}
-          <div className="md:hidden space-y-3">
-            {/* Column Selector Tabs */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
-              {COLUMNS.map((col, idx) => {
-                const count = filteredOrders.filter(o => o.status === col.status).length;
-                const isActive = mobileColIdx === idx;
-                const IconComponent = col.icon;
-                return (
-                  <button
-                    key={col.status}
-                    onClick={() => setMobileColIdx(idx)}
-                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all active:scale-95
-                      ${isActive
-                        ? `${col.bgColor} ${col.borderColor} ${col.textColor} shadow-xs`
-                        : "bg-white border-gray-100 text-gray-400"}`}
-                  >
-                    <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span>{col.label}</span>
-                    {count > 0 && (
-                      <span className={`text-[7px] font-black px-1.5 py-0.5 rounded-full ${isActive ? `${col.textColor} bg-white/70` : "bg-gray-100 text-gray-500"}`}>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4 items-start">
+          {COLUMNS.map((col, idx) => {
+            const colOrders = filteredOrders.filter((o) => o.status === col.status);
+            const isHiddenMobile = mobileColIdx !== idx;
 
-            {/* Active column cards */}
-            {(() => {
-              const col = COLUMNS[mobileColIdx];
-              const colOrders = filteredOrders.filter(o => o.status === col.status);
-              return (
-                <div className="space-y-3">
+            return (
+              <div
+                key={col.status}
+                className={`space-y-3 bg-[#F5EFE6]/40 border border-[#EDE3D3] rounded-3xl p-3.5 ${
+                  isHiddenMobile ? "hidden lg:block" : "block"
+                }`}
+              >
+                {/* Column Header */}
+                <div className={`p-3 rounded-2xl border ${col.bgColor} ${col.borderColor} flex items-center justify-between`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${col.dotColor}`} />
+                    <span className={`text-xs font-black uppercase tracking-wider ${col.textColor}`}>{col.label}</span>
+                  </div>
+                  <span className={`text-xs font-black px-2 py-0.5 rounded-full bg-white ${col.textColor}`}>
+                    {colOrders.length}
+                  </span>
+                </div>
+
+                {/* Column Cards */}
+                <div className="space-y-3 min-h-[300px]">
                   {colOrders.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center text-gray-300 gap-2 bg-white rounded-2xl border border-gray-100">
-                      <ClipboardList className="h-8 w-8 opacity-30" />
-                      <span className="text-[9px] font-black uppercase tracking-wider">Nenhum pedido aqui</span>
+                    <div className="py-10 text-center text-gray-400 text-[10px] font-semibold border-2 border-dashed border-[#EDE3D3] rounded-2xl">
+                      Nenhum pedido
                     </div>
                   ) : (
-                    colOrders.map(ord => <OrderCard key={ord.id} ord={ord} />)
+                    colOrders.map(renderOrderCard)
                   )}
                 </div>
-              );
-            })()}
-          </div>
-
-          {/* ══════════════════════════════════════
-              DESKTOP: Horizontal Kanban Board
-          ══════════════════════════════════════ */}
-          <div className="hidden md:flex gap-5 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-gray-200">
-            {COLUMNS.map((col) => {
-              const columnOrders = filteredOrders.filter((o) => o.status === col.status);
-              const isNewCol = col.status === "NEW";
-              const IconComponent = col.icon;
-
-              return (
-                <div
-                  key={col.status}
-                  className={`w-[290px] xl:w-[310px] flex-shrink-0 rounded-3xl p-4 flex flex-col max-h-[75vh] border shadow-xs
-                    ${isNewCol && newOrderCount > 0 ? "bg-blue-50/60 border-blue-200" : `${col.bgColor} ${col.borderColor}`}`}
-                >
-                  <div className="flex items-center justify-between pb-3 mb-3.5 border-b border-gray-200/60">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${col.dotColor} ${isNewCol && newOrderCount > 0 ? "animate-ping" : ""}`} />
-                      <div className="flex items-center gap-1">
-                        <IconComponent className="h-4.5 w-4.5 text-gray-500" />
-                        <h3 className="text-[10px] font-black text-gray-700 uppercase tracking-wider">{col.label}</h3>
-                      </div>
-                    </div>
-                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${col.bgColor} ${col.textColor} border ${col.borderColor}`}>
-                      {columnOrders.length}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto space-y-3 pr-1 min-h-[200px] scrollbar-thin scrollbar-thumb-black/5">
-                    {columnOrders.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center text-gray-300 gap-1.5">
-                        <ClipboardList className="h-7 w-7 opacity-30" />
-                        <span className="text-[8px] font-black uppercase tracking-wider">Vazio</span>
-                      </div>
-                    ) : (
-                      columnOrders.map((ord) => <OrderCard key={ord.id} ord={ord} />)
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

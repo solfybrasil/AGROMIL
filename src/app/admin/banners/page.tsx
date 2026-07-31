@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Megaphone, Edit, Trash2, AlertCircle, CheckCircle, Eye, EyeOff,
-  Plus, ImageIcon, Link2, Type, AlignLeft, ToggleLeft, ToggleRight,
-  MoveUp, MoveDown, Palette,
+  Plus, ImageIcon, Link2, Type, ToggleLeft, ToggleRight, Palette,
+  UploadCloud, Save, Sparkles, MoveUp, MoveDown,
 } from "lucide-react";
+import { dbService } from "@/lib/db-service";
 
 interface Banner {
   id: string;
@@ -16,353 +17,471 @@ interface Banner {
   linkLabel: string | null;
   bgColor: string;
   textColor: string;
+  imagePosition?: string;
+  imageFit?: string;
   active: boolean;
   displayOrder: number;
 }
 
+const DEFAULT_BANNERS: Banner[] = [
+  {
+    id: "twin-1",
+    title: "Fertilizantes & Adubos",
+    subtitle: "Nutrição de Alta Performance",
+    imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&q=80",
+    linkUrl: "/categoria/jardinagem",
+    linkLabel: "Confira a Linha",
+    bgColor: "#8B5E3C",
+    textColor: "#FFFFFF",
+    active: true,
+    displayOrder: 1,
+  },
+  {
+    id: "twin-2",
+    title: "Rações & Suplementos Pet",
+    subtitle: "Saúde e Vitalidade Animal",
+    imageUrl: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&q=80",
+    linkUrl: "/categoria/petshop",
+    linkLabel: "Ver Promoções",
+    bgColor: "#1A1A1A",
+    textColor: "#EDE3D3",
+    active: true,
+    displayOrder: 2,
+  },
+];
 
+const PRESET_BG = [
+  { label: "Ouro Velho", value: "#8B5E3C" },
+  { label: "Preto Obsidiana", value: "#1A1A1A" },
+  { label: "Couro Nobre", value: "#2B2620" },
+  { label: "Verde Sálvia", value: "#2d6a4f" },
+  { label: "Linho Claro", value: "#F5EFE6" },
+  { label: "Areia Nobre", value: "#EDE3D3" },
+];
 
-const PRESET_BG = ["#1b4332", "#2d6a4f", "#134e4a", "#92400e", "#1e3a5f", "#7c2d12", "#1f2937", "#e2b13c"];
-const PRESET_TEXT = ["#ffffff", "#f9faf9", "#1b4332", "#1f2937", "#e2b13c"];
+const PRESET_TEXT = ["#FFFFFF", "#EDE3D3", "#2B2620", "#8B5E3C", "#e2b13c"];
 
 function SectionDivider({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-3 py-1">
-      <div className="h-px flex-1 bg-gray-100" />
-      <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">{title}</span>
-      <div className="h-px flex-1 bg-gray-100" />
+      <div className="h-px flex-1 bg-[#EDE3D3]" />
+      <span className="text-[9px] font-bold text-[#8B5E3C] uppercase tracking-widest">{title}</span>
+      <div className="h-px flex-1 bg-[#EDE3D3]" />
     </div>
   );
 }
 
 function FieldLabel({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">
-      {icon && <span className="text-primary/50">{icon}</span>}
+    <label className="flex items-center gap-1.5 text-[10px] font-bold text-[#8B5E3C] uppercase tracking-widest mb-1.5">
+      {icon && <span>{icon}</span>}
       {children}
     </label>
   );
 }
 
 export default function AdminBanners() {
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(DEFAULT_BANNERS);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [errMessage, setErrMessage] = useState("");
 
+  // Form states
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
-  const [linkLabel, setLinkLabel] = useState("");
-  const [bgColor, setBgColor] = useState("#1b4332");
-  const [textColor, setTextColor] = useState("#ffffff");
-  const [displayOrder, setDisplayOrder] = useState(0);
+  const [linkLabel, setLinkLabel] = useState("confira");
+  const [bgColor, setBgColor] = useState("#8B5E3C");
+  const [textColor, setTextColor] = useState("#FFFFFF");
+  const [imagePosition, setImagePosition] = useState("right");
+  const [imageFit, setImageFit] = useState("cover");
   const [active, setActive] = useState(true);
+  const [displayOrder, setDisplayOrder] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const fetchBanners = async () => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const broadcastBanners = (list: Banner[]) => {
     try {
-      const res = await fetch("/api/banners/all");
-      if (res.ok) setBanners(await res.json());
-    } catch (err) {
-      console.warn("Banners API offline.", err);
-    } finally { setLoading(false); }
+      localStorage.setItem("agromil_banners", JSON.stringify(list));
+      window.dispatchEvent(new Event("agromil_banners_updated"));
+    } catch {}
   };
 
-  useEffect(() => { fetchBanners(); }, []);
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const stored = localStorage.getItem("agromil_banners");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setBanners(parsed);
+            setLoading(false);
+            return;
+          }
+        }
+
+        const localBanners = await dbService.getBanners();
+        if (localBanners && localBanners.length > 0) {
+          setBanners(localBanners as any);
+        } else {
+          setBanners(DEFAULT_BANNERS);
+        }
+      } catch {
+        setBanners(DEFAULT_BANNERS);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBanners();
+  }, []);
+
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_SIZE = 800;
+          let w = img.width, h = img.height;
+          if (w > h ? w > MAX_SIZE : h > MAX_SIZE) {
+            if (w > h) { h *= MAX_SIZE / w; w = MAX_SIZE; }
+            else { w *= MAX_SIZE / h; h = MAX_SIZE; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (!file.type.startsWith("image/")) {
+      setErrMessage("Apenas imagens são permitidas.");
+      return;
+    }
+    const compressed = await compressImage(file);
+    setImageUrl(compressed);
+  };
 
   const resetForm = () => {
-    setTitle(""); setSubtitle(""); setImageUrl(""); setLinkUrl(""); setLinkLabel("");
-    setBgColor("#1b4332"); setTextColor("#ffffff"); setDisplayOrder(0); setActive(true); setEditingId(null);
+    setTitle(""); setSubtitle(""); setImageUrl(""); setLinkUrl("");
+    setLinkLabel("Confira"); setBgColor("#8B5E3C"); setTextColor("#FFFFFF");
+    setImagePosition("right"); setImageFit("cover"); setActive(true);
+    setDisplayOrder(banners.length + 1); setEditingId(null);
+    setMessage(""); setErrMessage("");
   };
 
-  const showMsg = (msg: string, isErr = false) => {
-    if (isErr) { setErrMessage(msg); setTimeout(() => setErrMessage(""), 4000); }
-    else { setMessage(msg); setTimeout(() => setMessage(""), 4000); }
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title) { showMsg("Título do banner é obrigatório.", true); return; }
-    const payload = { title, subtitle: subtitle || null, imageUrl: imageUrl || null, linkUrl: linkUrl || null, linkLabel: linkLabel || null, bgColor, textColor, displayOrder: Number(displayOrder), active };
+    setMessage(""); setErrMessage("");
+
+    if (!title.trim()) { setErrMessage("O título do banner é obrigatório."); return; }
+
+    const payload: Banner = {
+      id: editingId || `banner-${Date.now()}`,
+      title: title.trim(),
+      subtitle: subtitle.trim() || null,
+      imageUrl: imageUrl || null,
+      linkUrl: linkUrl.trim() || null,
+      linkLabel: linkLabel.trim() || "Confira",
+      bgColor,
+      textColor,
+      imagePosition,
+      imageFit,
+      active,
+      displayOrder: Number(displayOrder || banners.length + 1),
+    };
+
     try {
+      let updated = [...banners];
       if (editingId) {
-        const res = await fetch(`/api/banners/${editingId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (res.ok) { setBanners(banners.map(b => b.id === editingId ? { ...b, ...payload } : b)); showMsg("Banner atualizado com sucesso."); resetForm(); return; }
+        const idx = updated.findIndex((b) => b.id === editingId);
+        if (idx > -1) updated[idx] = payload;
       } else {
-        const res = await fetch("/api/banners", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (res.ok) { const created = await res.json(); setBanners([...banners, created]); showMsg("Banner cadastrado com sucesso."); resetForm(); return; }
+        updated.push(payload);
       }
-    } catch (err) {
-      console.warn("Error saving banner.", err);
-      showMsg("Erro de conexão ao salvar banner.", true);
+
+      updated.sort((a, b) => a.displayOrder - b.displayOrder);
+      setBanners(updated);
+      broadcastBanners(updated);
+
+      const endpoint = editingId ? `/api/banners/${editingId}` : "/api/banners";
+      const method = editingId ? "PUT" : "POST";
+      await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch(() => {});
+
+      setMessage(editingId ? "Banner atualizado!" : "Banner cadastrado!");
+      resetForm();
+    } catch {
+      setErrMessage("Erro ao salvar banner.");
     }
   };
 
-  const handleEditClick = (b: Banner) => {
-    setEditingId(b.id); setTitle(b.title); setSubtitle(b.subtitle || ""); setImageUrl(b.imageUrl || "");
-    setLinkUrl(b.linkUrl || ""); setLinkLabel(b.linkLabel || ""); setBgColor(b.bgColor);
-    setTextColor(b.textColor); setDisplayOrder(b.displayOrder); setActive(b.active);
+  const handleEdit = (b: Banner) => {
+    setEditingId(b.id);
+    setTitle(b.title);
+    setSubtitle(b.subtitle || "");
+    setImageUrl(b.imageUrl || "");
+    setLinkUrl(b.linkUrl || "");
+    setLinkLabel(b.linkLabel || "Confira");
+    setBgColor(b.bgColor);
+    setTextColor(b.textColor);
+    setImagePosition(b.imagePosition || "right");
+    setImageFit(b.imageFit || "cover");
+    setActive(b.active);
+    setDisplayOrder(b.displayOrder);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Deseja realmente excluir este banner?")) return;
-    try { await fetch(`/api/banners/${id}`, { method: "DELETE" }); } catch {}
-    setBanners(banners.filter(b => b.id !== id));
-    showMsg("Banner excluído.");
+    if (!confirm("Tem certeza que deseja excluir este banner?")) return;
+    const updated = banners.filter((b) => b.id !== id);
+    setBanners(updated);
+    broadcastBanners(updated);
+    await fetch(`/api/banners/${id}`, { method: "DELETE" }).catch(() => {});
+    setMessage("Banner removido com sucesso.");
   };
 
-  const handleOrderChange = async (b: Banner, dir: "up" | "down") => {
-    const newOrder = dir === "up" ? b.displayOrder - 1 : b.displayOrder + 1;
-    try { await fetch(`/api/banners/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ displayOrder: newOrder }) }); fetchBanners(); }
-    catch { setBanners(banners.map(item => item.id === b.id ? { ...item, displayOrder: newOrder } : item)); }
+  const toggleActive = async (id: string, current: boolean) => {
+    const updated = banners.map((b) => (b.id === id ? { ...b, active: !current } : b));
+    setBanners(updated);
+    broadcastBanners(updated);
   };
-
-  const toggleActive = async (b: Banner) => {
-    setBanners(banners.map(item => item.id === b.id ? { ...item, active: !b.active } : item));
-    try { await fetch(`/api/banners/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !b.active }) }); } catch {}
-  };
-
-  const totalActive = banners.filter(b => b.active).length;
-  const totalPaused = banners.filter(b => !b.active).length;
 
   return (
-    <div className="space-y-7 animate-fade-in-up">
+    <div className="space-y-6 font-sans text-[#2B2620] animate-fade-in-up">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 border border-primary/20 text-primary rounded-2xl p-2.5">
-            <Megaphone className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="font-serif text-2xl font-extrabold text-[#1b4332] tracking-tight">Campanhas & Banners</h1>
-            <p className="text-xs text-gray-400 font-semibold mt-0.5">Configure o carrossel de banners e promoções da página inicial</p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-[#EDE3D3] shadow-xs">
+        <div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-[#8B5E3C] bg-[#8B5E3C]/10 px-2.5 py-0.5 rounded-full border border-[#8B5E3C]/20">
+            Curadoria Visual
+          </span>
+          <h1 className="font-serif text-2xl md:text-3xl font-bold text-[#2B2620] tracking-tight mt-0.5">
+            Banners Promocionais
+          </h1>
+          <p className="text-xs text-[#7A6F63] font-medium mt-0.5">
+            Gerencie os cartões promocionais da página inicial com pré-visualização ao vivo.
+          </p>
         </div>
-        <button onClick={resetForm} className="inline-flex items-center gap-1.5 bg-primary hover:bg-[#122e22] text-white font-extrabold text-xs py-2.5 px-5 rounded-2xl shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer self-start sm:self-auto">
+        <button onClick={resetForm}
+          className="inline-flex items-center gap-2 bg-[#8B5E3C] hover:bg-[#6d482d] text-white font-black text-xs py-3 px-5 rounded-2xl shadow-md shadow-[#8B5E3C]/20 transition-all uppercase tracking-wider cursor-pointer self-start sm:self-auto">
           <Plus className="h-4 w-4" /> Novo Banner
         </button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        {[
-          { label: "Total de Banners", value: banners.length, icon: Megaphone, cls: "bg-blue-500/10 border-blue-500/20 text-blue-600" },
-          { label: "Banners Ativos", value: totalActive, icon: Eye, cls: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600" },
-          { label: "Banners Pausados", value: totalPaused, icon: EyeOff, cls: totalPaused > 0 ? "bg-amber-500/10 border-amber-500/20 text-amber-600" : "bg-gray-50 border-gray-200 text-gray-400" },
-        ].map((kpi, i) => (
-          <div key={i} className="bg-white border border-gray-100 rounded-3xl p-5 shadow-3xs flex items-center gap-4">
-            <div className={`rounded-2xl p-3 border flex-shrink-0 ${kpi.cls}`}><kpi.icon className="h-5 w-5" /></div>
-            <div>
-              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block">{kpi.label}</span>
-              <span className="text-xl font-black text-gray-800 tracking-tight mt-0.5 block">{kpi.value}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {message && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-2 text-xs font-semibold">
+          <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+          <span>{message}</span>
+        </div>
+      )}
 
-      {/* Toast messages */}
-      {message && <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold px-4 py-3 rounded-2xl"><CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0" />{message}</div>}
-      {errMessage && <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold px-4 py-3 rounded-2xl"><AlertCircle className="h-4 w-4 text-rose-600 flex-shrink-0" />{errMessage}</div>}
+      {errMessage && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl flex items-center gap-2 text-xs font-semibold">
+          <AlertCircle className="h-4 w-4 text-rose-600 flex-shrink-0" />
+          <span>{errMessage}</span>
+        </div>
+      )}
 
-      {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-        {/* LEFT: Form */}
-        <div className="lg:col-span-4 bg-white border border-gray-100 rounded-3xl p-6 shadow-3xs space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="bg-primary text-white rounded-xl w-7 h-7 flex items-center justify-center flex-shrink-0">
-              <Edit className="h-3.5 w-3.5" />
-            </div>
-            <h3 className="text-xs font-black text-gray-800">{editingId ? "Editando Banner" : "Novo Banner"}</h3>
-          </div>
+        {/* Form Panel */}
+        <div className="bg-white border border-[#EDE3D3] rounded-3xl p-6 shadow-xs space-y-5">
+          <h2 className="text-xs font-black text-[#2B2620] uppercase tracking-widest border-b border-[#EDE3D3]/60 pb-3 flex items-center gap-2">
+            <Megaphone className="h-4 w-4 text-[#8B5E3C]" />
+            {editingId ? "Editar Banner" : "Novo Banner"}
+          </h2>
 
-          <div className="h-px bg-gray-100" />
-
-          <form onSubmit={handleSave} className="space-y-4">
-            <SectionDivider title="Conteúdo" />
-
-            <div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
               <FieldLabel icon={<Type className="h-3 w-3" />}>Título *</FieldLabel>
-              <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Frete Grátis acima de R$ 150"
-                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+              <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ex: Fertilizantes de Inverno"
+                className="w-full bg-[#F5EFE6]/40 border border-[#EDE3D3] rounded-2xl py-3 px-4 text-xs font-semibold text-[#2B2620] focus:outline-none focus:ring-4 focus:ring-[#8B5E3C]/15 focus:border-[#8B5E3C]" />
             </div>
 
-            <div>
-              <FieldLabel icon={<AlignLeft className="h-3 w-3" />}>Subtítulo</FieldLabel>
-              <input type="text" value={subtitle} onChange={e => setSubtitle(e.target.value)} placeholder="Ex: Para todo o interior de Itu"
-                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+            <div className="space-y-1.5">
+              <FieldLabel>Subtítulo</FieldLabel>
+              <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)}
+                placeholder="Ex: Até 30% OFF nesta semana"
+                className="w-full bg-[#F5EFE6]/40 border border-[#EDE3D3] rounded-2xl py-3 px-4 text-xs font-semibold text-[#2B2620] focus:outline-none focus:ring-4 focus:ring-[#8B5E3C]/15 focus:border-[#8B5E3C]" />
+            </div>
+
+            <SectionDivider title="Cores e Visual" />
+
+            <div className="space-y-1.5">
+              <FieldLabel icon={<Palette className="h-3 w-3" />}>Cor de Fundo</FieldLabel>
+              <div className="flex gap-2">
+                <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)}
+                  className="h-10 w-12 rounded-xl border border-[#EDE3D3] cursor-pointer" />
+                <div className="flex flex-wrap gap-1 flex-1">
+                  {PRESET_BG.map((p) => (
+                    <button key={p.value} type="button" onClick={() => setBgColor(p.value)}
+                      style={{ backgroundColor: p.value }}
+                      className="h-7 w-7 rounded-lg border border-black/10 shadow-2xs hover:scale-110 transition-transform cursor-pointer"
+                      title={p.label} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <FieldLabel>Cor do Texto</FieldLabel>
+              <div className="flex gap-2 items-center">
+                <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)}
+                  className="h-10 w-12 rounded-xl border border-[#EDE3D3] cursor-pointer" />
+                <div className="flex gap-1">
+                  {PRESET_TEXT.map((c) => (
+                    <button key={c} type="button" onClick={() => setTextColor(c)}
+                      style={{ backgroundColor: c }}
+                      className="h-7 w-7 rounded-lg border border-black/10 shadow-2xs hover:scale-110 transition-transform cursor-pointer" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <SectionDivider title="Imagem e Link" />
+
+            <div className="space-y-1.5">
+              <FieldLabel icon={<ImageIcon className="h-3 w-3" />}>Imagem do Banner</FieldLabel>
+              <div onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-[#EDE3D3] hover:border-[#8B5E3C] bg-[#F5EFE6]/30 rounded-2xl p-4 text-center cursor-pointer transition-all">
+                {imageUrl ? (
+                  <div className="space-y-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageUrl} alt="preview" className="h-20 w-auto mx-auto rounded-xl object-cover shadow-2xs" />
+                    <span className="text-[9px] font-bold text-[#8B5E3C] uppercase block">Alterar imagem</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1 text-[#7A6F63]">
+                    <UploadCloud className="h-6 w-6 mx-auto text-[#8B5E3C]" />
+                    <span className="text-xs font-bold block text-[#2B2620]">Selecione uma imagem</span>
+                  </div>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileSelect(e.target.files)} />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <FieldLabel icon={<Link2 className="h-3 w-3" />}>Link</FieldLabel>
-                <input type="text" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} placeholder="/categoria/..."
-                  className="w-full border border-gray-200 rounded-2xl px-3 py-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+              <div className="space-y-1.5">
+                <FieldLabel icon={<Link2 className="h-3 w-3" />}>Link de Destino</FieldLabel>
+                <input type="text" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="/categoria/jardinagem"
+                  className="w-full bg-[#F5EFE6]/40 border border-[#EDE3D3] rounded-2xl py-2.5 px-3 text-xs font-semibold text-[#2B2620] focus:outline-none focus:ring-2 focus:ring-[#8B5E3C]/20" />
               </div>
-              <div>
-                <FieldLabel>Texto Botão</FieldLabel>
-                <input type="text" value={linkLabel} onChange={e => setLinkLabel(e.target.value)} placeholder="Ver Ofertas"
-                  className="w-full border border-gray-200 rounded-2xl px-3 py-2.5 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-              </div>
-            </div>
-
-            <div>
-              <FieldLabel icon={<ImageIcon className="h-3 w-3" />}>URL da Imagem (opcional)</FieldLabel>
-              <input type="text" value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..."
-                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-xs text-gray-700 font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-            </div>
-
-            <SectionDivider title="Aparência" />
-
-            {/* BG Color */}
-            <div>
-              <FieldLabel icon={<Palette className="h-3 w-3" />}>Cor de Fundo</FieldLabel>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {PRESET_BG.map(c => (
-                  <button key={c} type="button" onClick={() => setBgColor(c)}
-                    className={`w-7 h-7 rounded-full border-2 transition-all cursor-pointer hover:scale-110 ${bgColor === c ? "border-primary ring-2 ring-primary/30 scale-110" : "border-gray-200"}`}
-                    style={{ background: c }} />
-                ))}
-                <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)} className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 cursor-pointer overflow-hidden" />
-                <span className="font-mono text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-2 rounded-lg self-center">{bgColor}</span>
+              <div className="space-y-1.5">
+                <FieldLabel>Texto do Botão</FieldLabel>
+                <input type="text" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)}
+                  placeholder="Confira"
+                  className="w-full bg-[#F5EFE6]/40 border border-[#EDE3D3] rounded-2xl py-2.5 px-3 text-xs font-semibold text-[#2B2620] focus:outline-none focus:ring-2 focus:ring-[#8B5E3C]/20" />
               </div>
             </div>
 
-            {/* Text Color */}
-            <div>
-              <FieldLabel>Cor do Texto</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {PRESET_TEXT.map(c => (
-                  <button key={c} type="button" onClick={() => setTextColor(c)}
-                    className={`w-7 h-7 rounded-full border-2 transition-all cursor-pointer hover:scale-110 ${textColor === c ? "border-primary ring-2 ring-primary/30 scale-110" : "border-gray-200"}`}
-                    style={{ background: c }} />
-                ))}
-                <input type="color" value={textColor} onChange={e => setTextColor(e.target.value)} className="w-7 h-7 rounded-full border-2 border-dashed border-gray-300 cursor-pointer overflow-hidden" />
-              </div>
-            </div>
-
-            <SectionDivider title="Configurações" />
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-black text-gray-700">Exibir na Homepage</p>
-                <p className="text-[9px] text-gray-400 font-semibold">Banner visível no carrossel</p>
-              </div>
-              <button type="button" onClick={() => setActive(!active)}
-                className={`transition-all duration-300 cursor-pointer p-1 ${active ? "text-emerald-500" : "text-gray-300"}`}>
-                {active ? <ToggleRight className="h-8 w-8" /> : <ToggleLeft className="h-8 w-8" />}
-              </button>
-            </div>
-
-            <div>
-              <FieldLabel>Ordem de Exibição</FieldLabel>
-              <input type="number" min="0" value={displayOrder} onChange={e => setDisplayOrder(Number(e.target.value))}
-                className="w-full border border-gray-200 rounded-2xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-            </div>
-
-            {/* Preview */}
-            {title && (
-              <div className="rounded-2xl overflow-hidden">
-                <div className="p-4 relative" style={{ backgroundColor: bgColor }}>
-                  {imageUrl && <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url(${imageUrl})` }} />}
-                  <div className="relative z-10">
-                    <p className="text-sm font-black leading-tight" style={{ color: textColor }}>{title}</p>
-                    {subtitle && <p className="text-[10px] mt-1 opacity-80" style={{ color: textColor }}>{subtitle}</p>}
-                    {linkLabel && <span className="inline-block mt-2 text-[9px] font-black px-2.5 py-1 rounded-lg" style={{ background: textColor === "#ffffff" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)", color: textColor }}>{linkLabel}</span>}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-1">
-              <button type="submit" className="flex-1 bg-primary hover:bg-[#122e22] text-white text-xs font-black py-3 rounded-2xl shadow-sm transition-all active:scale-95 cursor-pointer">
-                {editingId ? "Salvar Alterações" : "Criar Banner"}
-              </button>
+            <div className="pt-3 flex gap-2">
               {editingId && (
-                <button type="button" onClick={resetForm} className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-3 px-5 rounded-2xl transition-all cursor-pointer">
+                <button type="button" onClick={resetForm}
+                  className="flex-1 py-3 px-4 border border-[#EDE3D3] text-[#7A6F63] font-bold text-xs rounded-2xl hover:bg-[#F5EFE6] transition-all">
                   Cancelar
                 </button>
               )}
+              <button type="submit"
+                className="flex-1 bg-[#8B5E3C] hover:bg-[#6d482d] text-white font-black text-xs uppercase tracking-wider py-3 px-4 rounded-2xl shadow-md shadow-[#8B5E3C]/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <Save className="h-4 w-4" />
+                {editingId ? "Atualizar" : "Salvar Banner"}
+              </button>
             </div>
           </form>
         </div>
 
-        {/* RIGHT: Banner list */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="bg-white border border-gray-100 rounded-3xl p-5 shadow-3xs">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-black text-[#1b4332] uppercase tracking-wider flex items-center gap-2">
-                <Megaphone className="h-4 w-4" /> Banners Cadastrados ({banners.length})
+        {/* Preview & Banners List */}
+        <div className="lg:col-span-2 space-y-5">
+
+          {/* Live Banner Mockup */}
+          <div className="bg-white border border-[#EDE3D3] rounded-3xl p-5 shadow-xs space-y-3">
+            <p className="text-[10px] font-black text-[#7A6F63] uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-[#8B5E3C]" /> Visualização ao Vivo na Loja
+            </p>
+            <div className="rounded-2xl p-6 min-h-[140px] flex items-center justify-between overflow-hidden shadow-md relative"
+              style={{ backgroundColor: bgColor, color: textColor }}>
+              <div className="space-y-1.5 max-w-[60%] relative z-10">
+                {subtitle && <p className="text-[9px] font-black uppercase tracking-widest opacity-80">{subtitle}</p>}
+                <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight">{title || "Título do Banner"}</h3>
+                <span className="inline-block mt-2 font-black text-[9px] uppercase px-4 py-2 rounded-xl bg-black/20 backdrop-blur-xs border border-white/20">
+                  {linkLabel || "Confira"} →
+                </span>
+              </div>
+              {imageUrl && (
+                <div className="h-28 w-28 rounded-xl overflow-hidden shadow-lg border border-white/20 flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="banner image" className="h-full w-full object-cover" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Banners List */}
+          <div className="space-y-3">
+            <div className="bg-white border border-[#EDE3D3] rounded-3xl p-4 shadow-xs flex justify-between items-center">
+              <h3 className="text-xs font-black text-[#2B2620] uppercase tracking-wider flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-[#8B5E3C]" /> Banners Cadastrados ({banners.length})
               </h3>
             </div>
 
-            {loading ? (
-              <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-7 w-7 border-4 border-primary border-t-transparent" /></div>
-            ) : banners.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center gap-3 text-gray-400">
-                <ImageIcon className="h-10 w-10 opacity-30" />
-                <p className="text-xs font-black uppercase tracking-wider">Nenhum banner cadastrado</p>
-                <p className="text-[10px] font-semibold">Crie seu primeiro banner usando o formulário ao lado</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {[...banners].sort((a, b) => a.displayOrder - b.displayOrder).map(b => (
-                  <div key={b.id} className="border border-gray-100 rounded-2xl overflow-hidden shadow-3xs group hover:shadow-sm transition-all">
-                    {/* Preview strip */}
-                    <div className="relative px-5 py-4 flex items-center justify-between" style={{ backgroundColor: b.bgColor }}>
-                      {b.imageUrl && <div className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none" style={{ backgroundImage: `url(${b.imageUrl})` }} />}
-                      <div className="relative z-10 flex-1 min-w-0 pr-3">
-                        <h4 className="text-sm font-black truncate" style={{ color: b.textColor }}>{b.title}</h4>
-                        {b.subtitle && <p className="text-[10px] opacity-75 mt-0.5" style={{ color: b.textColor }}>{b.subtitle}</p>}
-                        {b.linkLabel && (
-                          <span className="inline-block mt-2 text-[9px] font-black px-2.5 py-1 rounded-lg bg-white/20" style={{ color: b.textColor }}>
-                            {b.linkLabel} →
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative z-10 flex flex-col items-end gap-1.5 flex-shrink-0">
-                        <span className="text-[8px] font-black bg-black/20 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          Ordem #{b.displayOrder}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold uppercase flex items-center gap-1 ${b.active ? "bg-emerald-500/20 text-emerald-200" : "bg-black/30 text-gray-300"}`}>
-                          {b.active ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
-                          {b.active ? "Ativo" : "Pausado"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Actions footer */}
-                    <div className="bg-gray-50/60 border-t border-gray-100 px-4 py-2.5 flex items-center gap-2">
-                      <button onClick={() => handleOrderChange(b, "up")} className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:text-primary hover:bg-white transition-colors cursor-pointer">
-                        <MoveUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => handleOrderChange(b, "down")} className="p-1.5 rounded-lg border border-gray-200 text-gray-400 hover:text-primary hover:bg-white transition-colors cursor-pointer">
-                        <MoveDown className="h-3.5 w-3.5" />
-                      </button>
-
-                      <button onClick={() => toggleActive(b)} className={`px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-1 ${b.active ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"}`}>
-                        {b.active ? <><ToggleRight className="h-3.5 w-3.5" /> Ativo</> : <><ToggleLeft className="h-3.5 w-3.5" /> Pausado</>}
-                      </button>
-
-                      <div className="ml-auto flex gap-1.5">
-                        <button onClick={() => handleEditClick(b)} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-primary hover:bg-white transition-colors cursor-pointer">
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(b.id)} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
+            {banners.map((b) => (
+              <div key={b.id} className="bg-white border border-[#EDE3D3] rounded-2xl p-4 shadow-xs flex items-center justify-between gap-4 hover:border-[#8B5E3C]/40 transition-all">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-xl flex-shrink-0 border border-black/10 overflow-hidden flex items-center justify-center font-black text-xs"
+                    style={{ backgroundColor: b.bgColor, color: b.textColor }}>
+                    {b.imageUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={b.imageUrl} alt={b.title} className="h-full w-full object-cover" />
+                    ) : (
+                      "B"
+                    )}
                   </div>
-                ))}
+                  <div className="min-w-0">
+                    <span className="text-[8px] font-black text-[#8B5E3C] bg-[#8B5E3C]/10 px-2 py-0.5 rounded uppercase">
+                      #{b.displayOrder}
+                    </span>
+                    <h4 className="text-xs font-black text-[#2B2620] truncate mt-0.5">{b.title}</h4>
+                    {b.subtitle && <p className="text-[9px] text-[#7A6F63] truncate">{b.subtitle}</p>}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => toggleActive(b.id, b.active)}
+                    className={`transition-colors cursor-pointer ${b.active ? "text-emerald-600" : "text-gray-300"}`}>
+                    {b.active ? <ToggleRight className="h-6 w-6" /> : <ToggleLeft className="h-6 w-6" />}
+                  </button>
+                  <button onClick={() => handleEdit(b)}
+                    className="p-2 border border-[#EDE3D3] rounded-xl text-[#7A6F63] hover:text-[#8B5E3C] hover:bg-[#F5EFE6] transition-colors cursor-pointer">
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => handleDelete(b.id)}
+                    className="p-2 border border-[#EDE3D3] rounded-xl text-[#7A6F63] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            )}
+            ))}
           </div>
+
         </div>
+
       </div>
     </div>
   );

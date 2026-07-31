@@ -5,7 +5,7 @@ async function run() {
   try {
     const products = await dbService.getProducts({ includeInactive: true });
     console.log(`Found ${products.length} products:`);
-    products.forEach((p) => {
+    products.forEach((p: any) => {
       console.log(`- ID: ${p.id} | Name: ${p.name} | Category: ${p.categoryId} | SKU: ${p.sku} | Active: ${p.active}`);
     });
   } catch (error) {

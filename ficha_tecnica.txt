@@ -1,104 +1,143 @@
 ================================================================================
-FICHA TÉCNICA — MARKETPLACE AGROMIL (ITU/SP)
+FICHA TÉCNICA E FUNCIONALIDADES — AGROMIL MARKETPLACE
+Plataforma de e-commerce agropecuário (Itu/SP)
 ================================================================================
 
-Este documento descreve as especificações técnicas, funcionalidades de negócio
-e diferenciais de arquitetura do Marketplace Agromil, uma plataforma de e-commerce
-de alta performance e nível corporativo para comércio de insumos agropecuários,
-produtos pet shop, jardinagem e irrigação.
-
+1. VISÃO GERAL
 --------------------------------------------------------------------------------
-1. ESPECIFICAÇÕES TÉCNICAS E ARQUITETURA
+Nome:            Agromil Agropecuária & Marketplace
+Segmento:        Varejo e atacado de produtos agropecuários, pet shop,
+                 jardinagem, ferramentas, irrigação e EPIs.
+Público:         Consumidor final (varejo) e empresas/condomínios
+                 (Plano Corporativo / atacado).
+Objetivo:        Loja virtual com catálogo, carrinho, checkout, área do
+                 cliente (fidelidade, pedidos, endereços) e painel admin.
+
+2. STACK TECNOLÓGICO
 --------------------------------------------------------------------------------
-- Framework Base: Next.js 16.2 (com compilador ultra-rápido Turbopack).
-- Estilização & UI: Tailwind CSS v4 para uma interface moderna de alta qualidade
-  visual (Paleta de cores HSL tailormade na cor Dark Emerald #1b4332).
-- Banco de Dados: Supabase PostgreSQL (banco relacional altamente seguro).
-- Integração de Dados: Supabase REST API (@supabase/supabase-js) em ambientes
-  serverless para evitar lentidão e timeouts de conexões diretas PostgreSQL (TCP)
-  que costumam ocorrer em servidores sem pool persistente (como Netlify).
-- Hospedagem e CI/CD: Netlify (integração contínua com GitHub).
-- Segurança & Sessões: Autenticação JWT criptografada de dupla camada (Supabase
-  Auth no modo online, e chaves JWT locais no modo fallback/offline).
+- Framework:        Next.js (App Router)
+- Linguagem:        TypeScript
+- UI:               Tailwind CSS + Lucide React (ícones)
+- Estado (carrinho): Zustand com persistência em localStorage
+- Banco de dados:   PostgreSQL (hospedado no Supabase)
+- Acesso a dados:   Supabase REST (supabase-js) em runtime; Prisma para
+                    schema/migrations/seed
+- Auth:             Supabase Auth (clientes) + bcrypt (admin/modo offline)
+- Deploy:           Netlify (build: prisma generate && next build)
+- PWA:              Suporte a manifest e instalável (PWAInstaller)
+- Conversa:         Chat widget integrado
 
+3. ESTRUTURA DE DADOS (PostgreSQL / Supabase)
 --------------------------------------------------------------------------------
-2. FUNCIONALIDADES DO SITE (FRONT-END / CLIENTE)
+Tabelas principais:
+- Category             Categorias do catálogo (slug único)
+- Product              Produtos (nome, descrição, preço, promo, estoque,
+                       unidade, sku, imagens[], ativo, destaque)
+- Order                Pedidos (cliente, endereço, pagamento, status, total)
+- OrderItem            Itens do pedido (relação flexível com produto:
+                       productId aceita NULL ao excluir produto — SET NULL)
+- Customer             Clientes (plano varejo ou corporativo)
+- LoyaltyTransaction   Pontos de fidelidade por cliente
+- AdminUser            Usuários administrativos
+- Banner, Coupon, Review, Favorite, PriceHistory, StockAlert, Subscription
+
+Categorias (6):
+1. Jardinagem & Vasos        (slug: jardinagem)
+2. Rações & Acessórios Pet   (slug: petshop)
+3. Agropecuária Geral        (slug: agropecuaria)
+4. Ferramentas & Equip.      (slug: ferramentas)
+5. Irrigação                 (slug: irrigacao)
+6. Vestuário & EPI           (slug: vestuario-epi)
+
+4. ÁREAS E FUNCIONALIDADES — LOJA (CLIENTE)
 --------------------------------------------------------------------------------
-A. Página Inicial (Vitrine Digital)
-   - Banner rotativo gerenciado dinamicamente no banco para campanhas sazonais.
-   - Menu rápido de categorias com ícones premium (Jardinagem, Pet Shop, etc.).
-   - Carrossel de ofertas especiais e produtos em destaque.
-   - Seção institucional com a história da Agromil e depoimentos de clientes.
+4.1 Catálogo e Navegação
+- Home com Hero Slider (banners rotativos) e vitrine de produtos.
+- Categoria por slug (/categoria/[slug]).
+- Busca (/busca) com filtros.
+- Menu de categorias no topo.
 
-B. Busca Inteligente & Navegação
-   - Caixa de pesquisa com autocomplete dinâmico de alta velocidade.
-   - Gravação local das últimas 5 buscas do cliente para compras recorrentes rápidos.
-   - Filtro integrado por categoria e pesquisa textual instantânea.
+4.2 Produto
+- Página de detalhe (/produto/[id]) com galeria, descrição, preço/promo,
+  seletor de quantidade e "Adicionar ao Carrinho".
+- Modal de detalhe rápido (ProductDetailsModal) a partir dos cards.
+- Card de produto (ProductCard) com badge de desconto e botão comprar.
+- Produtos relacionados (RelatedProducts) na página do produto.
 
-C. Detalhes de Produtos
-   - Galeria de imagens, preço de varejo e preço promocional dinâmico.
-   - Controle de estoque real com aviso de indisponibilidade automático.
-   - Descrições curtas e detalhadas estruturadas de forma premium.
+4.3 Carrinho e Checkout
+- Carrinho persistente (Zustand + localStorage) com drawer lateral.
+- Adição ao carrinho NÃO redireciona: dispara animação "pop" no botão e
+  um toast de confirmação.
+- Toast inteligente:
+    * Verde "Adicionado ao carrinho!" (1ª vez).
+    * Amarelo "Você já adicionou este produto — deseja adicionar mais um?"
+      (se já estiver no carrinho), com botão "Ver carrinho".
+- Layout do toast responsivo (empilhado e full-width no mobile).
+- Checkout (/checkout) com cálculo de subtotal, frete e total.
 
-D. Carrinho de Compras Interativo
-   - Drawer (painel lateral deslizante) que abre sem mudar o usuário de página.
-   - Cálculo automático de subtotal e frete estimado em tempo real.
-   - Adição, remoção e edição de quantidade diretamente no carrinho.
+4.4 Área do Cliente (/minha-conta)  [oculta o menu de categorias]
+- Visão Geral (dashboard).
+- Meus Pedidos (histórico + repetir pedido).
+- Meu Perfil (dados, troca para Plano Corporativo).
+- Endereços Salvos.
+- Clube Fidelidade:
+    * Saldo de pontos (120 pts por pedido ENTREGUE).
+    * Níveis: Bronze → Prata (600) → Ouro (1800) → Diamante (3600).
+    * Benefícios por nível e barra de progresso.
+    * Histórico de pontos (crédito/reverso automático conforme status).
 
-E. Checkout de Passo Único (Estilo iFood / Express)
-   - Preenchimento do endereço rápido com autocompletar via API ViaCEP.
-   - Múltiplas formas de pagamento: Cartão de Crédito, Boleto, Pix e Faturado.
-   - Integração e validação de cupons de desconto gerenciados pelo banco.
-   - Taxa de entrega dinâmica para a região de Itu/SP.
+4.5 Conta
+- Login / Registro de clientes (Supabase Auth).
+- Favoritos (/favoritos) com adicionar tudo ao carrinho.
 
+5. ÁREA ADMINISTRATIVA (/admin)
 --------------------------------------------------------------------------------
-3. ÁREA DE CLIENTE (PORTAL MINHA CONTA)
+- Dashboard com métricas e relatórios.
+- Produtos:
+    * Listagem, novo e editar (ProductForm).
+    * Upload de imagens com DRAG-AND-DROP (desktop e mobile).
+    * Suporte a MÚLTIPLAS imagens (1ª = capa).
+    * No mobile: botão "Tirar Foto na Hora" abre a câmera (capture).
+    * Compressão automática de imagem (canvas, max 800px, JPEG 70%).
+- Categorias: gerenciamento.
+- Pedidos: visualização, alteração de status (gera/reverte pontos de
+  fidelidade automaticamente ao marcar ENTREGUE).
+- Banners / Hero: slots de slide com presets de imagem.
+- Cupons: criação e gestão.
+- Avaliações: moderação.
+- Relatórios: indicadores de vendas.
+
+6. REGRAS DE NEGÓCIO
 --------------------------------------------------------------------------------
-A. Níveis de Conta (Uso Grandes Empresas)
-   - Conta Comum (Varejo): Perfil padrão de compras avulsas.
-   - Plano Corporativo / Parceiro: Ideal para grandes empresas, paisagistas e
-     condomínios. Dá acesso a descontos exclusivos (5% a 15%) e faturamento faturado.
+- Pontos de fidelidade: +120 ao marcar pedido como ENTREGUE; -120 ao
+  reverter de ENTREGUE para outro status.
+- Exclusão de produto: permitida mesmo com histórico de pedidos (o
+  OrderItem mantém snapshot do nome; productId vira NULL).
+- Plano Corporativo: descontos no atacado via perfil do cliente.
+- Estoque: botão de compra desabilitado quando stock <= 0 (esgotado).
 
-B. Visão Geral (Dashboard)
-   - Cartões de KPIs mostrando o tipo de conta ativo, pontos fidelidade acumulados
-     e quantidade de pedidos finalizados.
-   - Bloco de acesso rápido para rastrear o status do último pedido realizado.
-
-C. Histórico & Rastreamento de Pedidos
-   - Listagem completa de pedidos com filtros de status (Em aberto, Concluídos, Cancelados).
-   - Linha do tempo visual do pedido em tempo real:
-     Novo ➔ Confirmado ➔ Em Preparo ➔ Enviado ➔ Entregue.
-   - Preservação do histórico de vendas: os produtos comprados anteriormente
-     permanecem visíveis nos relatórios de pedidos mesmo se forem deletados do catálogo.
-
-D. Gestão de Endereços e Dados do Perfil
-   - Alteração cadastral de nome, telefone e senha criptografada.
-   - Gerenciamento de endereços de entrega com autocompletar e validação de CEP.
-
-E. Clube de Fidelidade
-   - Acúmulo de 120 pontos a cada compra finalizada.
-   - Categorias de fidelidade progressivas com vantagens específicas:
-     * Bronze (0 - 599 pts) ➔ Suporte padrão.
-     * Prata (600 - 1799 pts) ➔ Cupom no aniversário e frete grátis acima de R$ 120.
-     * Ouro (1800 - 3599 pts) ➔ 5% de desconto extra e faturamento prioritário.
-     * Diamante (3600+ pts) ➔ 7% de desconto permanente, frete grátis irrestrito.
-
+7. VARIÁVEIS DE AMBIENTE (Netlify)
 --------------------------------------------------------------------------------
-4. PAINEL ADMINISTRATIVO (ADMIN DASHBOARD)
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+- SUPABASE_SERVICE_ROLE_KEY   (necessária para acesso total via server)
+- DATABASE_URL                (Postgres, usada em prisma/migrate/seed)
+
+8. SCRIPTS E MANUTENÇÃO
 --------------------------------------------------------------------------------
-A. Controle em Tempo Real
-   - Estatísticas gerais em destaque: Faturamento em caixa, total de produtos em
-     estoque, produtos com estoque baixo e produtos esgotados.
-   - Gráfico ou lista de pedidos recentes prontos para alteração de status.
+- Build:            npm run build  (prisma generate && next build)
+- Seed (SQL):       scripts/seed-products.sql  (60 produtos reais, 10/cat)
+- Migrations:       prisma/migrations/*
+- Type-check:       npx tsc --noEmit
+- Lint:             npm run lint
 
-B. Controle de Produtos
-   - Cadastro de novos itens com fotos, descrição, preço normal e preço de promoção.
-   - Botão de status de ativação (permite ocultar ou exibir produtos no site instantaneamente).
-   - Botão "Excluir": Deleta produtos de forma permanente. Graças à configuração
-     "ON DELETE SET NULL" nas chaves estrangeiras, produtos que já têm histórico
-     de vendas anteriores podem ser excluídos com segurança sem quebrar as faturas.
+9. OBSERVAÇÕES DE IMPLANTAÇÃO
+--------------------------------------------------------------------------------
+- O app usa Supabase REST em runtime (Prisma mantido p/ schema/migrations).
+- Deploy não roda migrations automáticas; aplicar SQL manualmente no
+  Supabase quando necessário (ex.: exclusão de produtos, seed).
+- Dados sensíveis (senha do banco, service_role) NÃO devem ser commitados.
 
-C. Gestão de Categorias e Cupons
-   - Cadastro e gerenciamento de categorias ativas na vitrine principal.
-   - Criação de cupons de descontos com regras de pedido mínimo e data de expiração.
+================================================================================
+Fim da ficha técnica
 ================================================================================

@@ -9,38 +9,36 @@ const prisma = connectionString
   : new PrismaClient({} as any);
 
 async function main() {
-  console.log("Starting seed database with stock photography URLs...");
+  console.log("Seeding SILUET fashion database...");
 
   // 1. Create Admin User
-  const adminEmail = "admin@agromil.com.br";
+  const adminEmail = "admin@siluet.com.br";
   const existingAdmin = await prisma.adminUser.findUnique({
     where: { email: adminEmail },
   });
 
   if (!existingAdmin) {
-    const hashedPassword = await bcrypt.hash("Agromil2026!", 10);
+    const hashedPassword = await bcrypt.hash("SiluetModa2026!", 10);
     await prisma.adminUser.create({
       data: {
-        name: "Administrador Agromil",
+        name: "Administrador SILUET",
         email: adminEmail,
         password: hashedPassword,
         role: "admin",
         active: true,
       },
     });
-    console.log("Admin user created: admin@agromil.com.br / Agromil2026!");
-  } else {
-    console.log("Admin user already exists.");
+    console.log("Admin user created: admin@siluet.com.br / SiluetModa2026!");
   }
 
-  // 2. Create Categories with Unsplash Stock Images
+  // 2. Create Categories for SILUET Fashion
   const categoriesData = [
-    { name: "Jardinagem", slug: "jardinagem", displayOrder: 1, imageUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?q=80&w=600" },
-    { name: "Pet Shop", slug: "petshop", displayOrder: 2, imageUrl: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600" },
-    { name: "Agropecuária Geral", slug: "agropecuaria", displayOrder: 3, imageUrl: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=600" },
-    { name: "Ferramentas", slug: "ferramentas", displayOrder: 4, imageUrl: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?q=80&w=600" },
-    { name: "Irrigação", slug: "irrigacao", displayOrder: 5, imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=600" },
-    { name: "Vestuário & EPI", slug: "vestuario-epi", displayOrder: 6, imageUrl: "https://images.unsplash.com/photo-1595079676339-1534801ad6cf?q=80&w=600" },
+    { name: "Vestidos & Midis", slug: "vestidos", displayOrder: 1, imageUrl: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=600" },
+    { name: "Tops & Blusas", slug: "tops-blusas", displayOrder: 2, imageUrl: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=600" },
+    { name: "Conjuntos & Tailoring", slug: "conjuntos", displayOrder: 3, imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=600" },
+    { name: "Calças & Wide Leg", slug: "calcas-jeans", displayOrder: 4, imageUrl: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=600" },
+    { name: "Bolsas & Acessórios", slug: "acessorios", displayOrder: 5, imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=600" },
+    { name: "Calçados & Mules", slug: "calcados", displayOrder: 6, imageUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80&w=600" },
   ];
 
   const categories = [];
@@ -52,173 +50,186 @@ async function main() {
     });
     categories.push(upserted);
   }
-  console.log(`Seeded ${categories.length} categories.`);
+  console.log(`Seeded ${categories.length} fashion categories.`);
 
-  // Find category map
   const catMap = categories.reduce((acc, cat) => {
     acc[cat.slug] = cat.id;
     return acc;
   }, {} as Record<string, string>);
 
-  // 3. Create Products with Unsplash Stock Images
+  // 3. Create SILUET Fashion Products
   const productsData = [
-    // Jardinagem
+    // Vestidos
     {
-      name: "Adubo Orgânico Concentrado Húmus de Minhoca 5kg",
-      description: "Húmus de minhoca 100% orgânico e puro. Rico em nutrientes essenciais, melhora a estrutura do solo, estimula o enraizamento e proporciona um crescimento saudável para flores, folhagens e hortas domésticas. Ideal para jardinagem geral.",
-      shortDesc: "Húmus de minhoca 100% orgânico e puro para o solo do seu jardim.",
-      price: 24.90,
-      promoPrice: 19.90,
-      categoryId: catMap["jardinagem"],
-      images: ["https://images.unsplash.com/photo-1463936575829-25148e1db1b8?q=80&w=600"],
-      stock: 35,
-      unit: "Saco 5kg",
-      sku: "JAD-001",
-      active: true,
-      featured: true,
-    },
-    {
-      name: "Vaso Auto-irrigável Gourmet N03 Verde Floresta",
-      description: "Vaso auto-irrigável com sistema de cordões que funcionam como uma espécie de raiz artificial, mantendo a umidade ideal da terra por até 14 dias. Ideal para temperos, hortaliças e plantas ornamentais em apartamentos.",
-      shortDesc: "Mantenha suas plantas hidratadas de forma prática e limpa.",
-      price: 32.90,
-      categoryId: catMap["jardinagem"],
-      images: ["https://images.unsplash.com/photo-1485955900006-10f4d324d411?q=80&w=600"],
-      stock: 20,
-      unit: "Unidade",
-      sku: "JAD-002",
-      active: true,
-      featured: true,
-    },
-    {
-      name: "Pá de Mão Estreita Tramontina em Aço",
-      description: "Pá de mão fabricada em aço carbono de alta resistência com cabo ergonômico. Ideal para cavar, remover e transportar terra para plantio de mudas e flores em vasos.",
-      shortDesc: "Ferramenta leve e resistente para manejo de mudas e canteiros.",
-      price: 15.50,
-      categoryId: catMap["jardinagem"],
-      images: ["https://images.unsplash.com/photo-1617576683096-00fc8eecb3af?q=80&w=600"],
-      stock: 50,
-      unit: "Unidade",
-      sku: "JAD-003",
-      active: true,
-      featured: false,
-    },
-
-    // Pet Shop
-    {
-      name: "Ração Premium Especial Cães Adultos Frango e Arroz 15kg",
-      description: "Alimento completo de alta performance para cães adultos de médio e grande porte. Rica em proteínas de alto valor biológico, ômegas 3 e 6 para pelos brilhantes, e prebióticos que auxiliam na saúde intestinal.",
-      shortDesc: "Alimento completo e balanceado com frango e arroz para cães adultos.",
+      name: "Vestido Midi Linho Terracota Sunset",
+      description: "Vestido midi em mistura de linho natural com decote transpassado e amarrações na cintura. Modelagem fluida e elegante perfeita para dias ensolarados ou eventos casuais chiques. Acompanha forro suave e fenda lateral sutil.",
+      shortDesc: "Vestido midi elegante em linho terracota com amarração na cintura.",
       price: 189.90,
-      promoPrice: 169.90,
-      categoryId: catMap["petshop"],
-      images: ["https://images.unsplash.com/photo-1589924691106-07416955937c?q=80&w=600"],
-      stock: 15,
-      unit: "Saco 15kg",
-      sku: "PET-001",
-      active: true,
-      featured: true,
-    },
-    {
-      name: "Antipulgas e Carrapatos Simparic 20mg (Cães 5 a 10kg)",
-      description: "Simparic é um comprimido mastigável altamente eficaz contra pulgas, carrapatos e sarnas. Começa a agir rapidamente e mantém a eficácia protetora por até 35 dias com muito sabor para o seu cão.",
-      shortDesc: "Comprimido mastigável eficaz contra pulgas, carrapatos e sarnas por 35 dias.",
-      price: 94.50,
-      categoryId: catMap["petshop"],
-      images: ["https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=600"],
-      stock: 45,
-      unit: "Caixa 1 Comp.",
-      sku: "PET-002",
-      active: true,
-      featured: true,
-    },
-
-    // Agropecuária Geral
-    {
-      name: "Sal Mineral 80 Fosforo para Bovinos 25kg",
-      description: "Suplemento mineral pronto para uso, indicado para bovinos de corte em phase de cria, recria e engorda. Garante o suprimento de fósforo, cálcio e microelementos, prevenindo deficiências e melhorando o rendimento do rebanho.",
-      shortDesc: "Suplemento mineral de alta qualidade para nutrição de bovinos de corte.",
-      price: 110.00,
-      categoryId: catMap["agropecuaria"],
-      images: ["https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?q=80&w=600"],
-      stock: 80,
-      unit: "Saco 25kg",
-      sku: "AGR-001",
-      active: true,
-      featured: true,
-    },
-    {
-      name: "Ração para Aves Postura Quibei 20kg",
-      description: "Ração balanceada de postura em farelo ou triturada. Formulação especial com cálcio e fósforo nas proporções ideais para garantir cascas de ovos mais resistentes e alta produtividade de postura.",
-      shortDesc: "Ração de postura balanceada para galinhas poedeiras de terreiro ou granja.",
-      price: 78.00,
-      promoPrice: 72.90,
-      categoryId: catMap["agropecuaria"],
-      images: ["https://images.unsplash.com/photo-1516467508483-a7212febe31a?q=80&w=600"],
+      promoPrice: 139.90,
+      categoryId: catMap["vestidos"],
+      images: [
+        "https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=600",
+        "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?q=80&w=600"
+      ],
       stock: 40,
-      unit: "Saco 20kg",
-      sku: "AGR-002",
-      active: true,
-      featured: false,
-    },
-
-    // Ferramentas e Equipamentos
-    {
-      name: "Pulverizador Costal Agrícola Guarany 20L",
-      description: "Pulverizador costal com bomba de pistão e design ergonômico. Tanque de alta durabilidade e bico regulável. Perfeito para aplicação de defensivos, adubos foliares e herbicidas em plantações e hortas.",
-      shortDesc: "Pulverizador de alta durabilidade e bombeamento suave de 20 litros.",
-      price: 349.90,
-      promoPrice: 319.00,
-      categoryId: catMap["ferramentas"],
-      images: ["https://images.unsplash.com/photo-1592417817098-8f3d6eb19675?q=80&w=600"],
-      stock: 8,
-      unit: "Unidade",
-      sku: "FER-001",
+      unit: "Tamanhos: P, M, G, GG",
+      sku: "SLT-DRS-001",
       active: true,
       featured: true,
     },
     {
-      name: "Tesoura de Poda Profissional Bypass Tramontina",
-      description: "Tesoura de poda bypass com lâmina em aço temperado e cabo emborrachado com amortecedor. Ideal para galhos secos ou verdes de médio diâmetro.",
-      shortDesc: "Corte preciso e macio para manutenção de árvores frutíferas e jardins.",
-      price: 59.90,
-      categoryId: catMap["ferramentas"],
-      images: ["https://images.unsplash.com/photo-1598902108854-10e335adac99?q=80&w=600"],
-      stock: 25,
-      unit: "Unidade",
-      sku: "FER-002",
+      name: "Vestido Canelado Cut-Out Bege Areia",
+      description: "Vestido justo em malha canelada encorpada de alta elasticidade com detalhe cut-out minimalista no decote. Conforto e caimento impecável que valoriza a silhueta.",
+      shortDesc: "Vestido justo canelado bege com fenda e decote sutil.",
+      price: 149.90,
+      promoPrice: 99.90,
+      categoryId: catMap["vestidos"],
+      images: [
+        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=600"
+      ],
+      stock: 28,
+      unit: "Tamanhos: P, M, G",
+      sku: "SLT-DRS-002",
       active: true,
-      featured: false,
+      featured: true,
     },
 
-    // Irrigação
+    // Tops & Blusas
     {
-      name: "Mangueira de Jardim Flexível Trançada 1/2' 20 Metros",
-      description: "Mangueira de jardim super resistente com tripla camada trançada em nylon. Acompanha bico com jato regulável e adaptadores para torneira. Não dobra e não racha ao sol.",
-      shortDesc: "Mangueira de alta durabilidade trançada de 20 metros com esguicho.",
+      name: "Blusa Transpassada Acetinada Marrom Cacau",
+      description: "Blusa feminina em tecido acetinado de toque aveludado com decote V transpassado e mangas levemente abulonadas. Perfeita para compor looks de alfaiataria ou casuais sofisticados.",
+      shortDesc: "Blusa feminina acetinada marrom cacau com caimento fluido.",
+      price: 119.90,
+      promoPrice: 89.90,
+      categoryId: catMap["tops-blusas"],
+      images: [
+        "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=600"
+      ],
+      stock: 50,
+      unit: "Tamanhos: P, M, G, GG",
+      sku: "SLT-TOP-001",
+      active: true,
+      featured: true,
+    },
+    {
+      name: "Cropped Tricot Boho Terracota",
+      description: "Top cropped confeccionado em tricot com pontos abertos textura boho. Possui alças médias e barra ondulada delicada. Ideal para combinar com calças de cintura alta.",
+      shortDesc: "Cropped em tricot boho terracota de textura premium.",
       price: 89.90,
-      categoryId: catMap["irrigacao"],
-      images: ["https://images.unsplash.com/photo-1558905657-497766e90c74?q=80&w=600"],
-      stock: 30,
-      unit: "Rolo 20m",
-      sku: "IRR-001",
+      promoPrice: 59.90,
+      categoryId: catMap["tops-blusas"],
+      images: [
+        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=600"
+      ],
+      stock: 60,
+      unit: "Tamanhos: P, M, G",
+      sku: "SLT-TOP-002",
+      active: true,
+      featured: false,
+    },
+
+    // Conjuntos
+    {
+      name: "Conjunto Alfaiataria Blazer + Short Terracota Chic",
+      description: "Conjunto feminino estruturado em tecido viscose estruturada. Blazer alongado com lapela clássica e botão forrado + Short de alfaiataria com bolso faca e cós alto. Elegância garantida.",
+      shortDesc: "Conjunto blazer alongado e short alfaiataria terracota.",
+      price: 279.90,
+      promoPrice: 199.90,
+      categoryId: catMap["conjuntos"],
+      images: [
+        "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?q=80&w=600"
+      ],
+      stock: 25,
+      unit: "Tamanhos: P, M, G",
+      sku: "SLT-SET-001",
+      active: true,
+      featured: true,
+    },
+    {
+      name: "Conjunto Ribana Casual Bege Latte (Cropped + Calça)",
+      description: "Conjunto casual e ultra confortável em malha ribana premium. Cropped de manga longa + Calça jogger fluida com elástico na cintura e bolsos funcionais.",
+      shortDesc: "Conjunto em malha ribana macia bege latte para o dia a dia.",
+      price: 169.90,
+      promoPrice: 119.90,
+      categoryId: catMap["conjuntos"],
+      images: [
+        "https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?q=80&w=600"
+      ],
+      stock: 32,
+      unit: "Tamanhos: P, M, G, GG",
+      sku: "SLT-SET-002",
       active: true,
       featured: true,
     },
 
-    // Vestuário e EPI
+    // Calças & Wide Leg
     {
-      name: "Bota de PVC Impermeável Cano Curto Preta Grendene",
-      description: "Bota de PVC cano curto impermeável, antiderrapante, ideal para trabalhos em locais úmidos, manuseio de animais, horta e lavagem de instalações rurais. Confortável e de fácil limpeza.",
-      shortDesc: "Bota de borracha impermeável cano curto, segura e antiderrapante.",
-      price: 49.90,
-      categoryId: catMap["vestuario-epi"],
-      images: ["https://images.unsplash.com/photo-1560769629-975ec94e6a86?q=80&w=600"],
-      stock: 22,
-      unit: "Par",
-      sku: "EPI-001",
+      name: "Calça Wide Leg Linho Natural Bege",
+      description: "Calça com corte wide leg pantacourt em linho misto natural. Possui pregas frontais refinadas, bolsos laterais embutidos e fechamento por zíper e botão de madeira sustentável.",
+      shortDesc: "Calça wide leg fluida em linho bege natural com pregas.",
+      price: 179.90,
+      promoPrice: 129.90,
+      categoryId: catMap["calcas-jeans"],
+      images: [
+        "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?q=80&w=600"
+      ],
+      stock: 35,
+      unit: "Tamanhos: 36, 38, 40, 42, 44",
+      sku: "SLT-PNT-001",
+      active: true,
+      featured: true,
+    },
+    {
+      name: "Calça Alfaiataria Reta Marrom Espresso",
+      description: "Calça reta em tecido alfaiataria com caimento impecável que alonga a silhueta. Cós alto com passantes de cinto e vincos demarcados.",
+      shortDesc: "Calça reta alfaiataria marrom espresso de cós alto.",
+      price: 159.90,
+      promoPrice: 119.90,
+      categoryId: catMap["calcas-jeans"],
+      images: [
+        "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=600"
+      ],
+      stock: 40,
+      unit: "Tamanhos: 36, 38, 40, 42",
+      sku: "SLT-PNT-002",
       active: true,
       featured: false,
+    },
+
+    // Acessórios
+    {
+      name: "Bolsa Baguete Couro Eco Terracota",
+      description: "Bolsa feminina modelo baguete estruturada em couro ecológico premium com textura sutil e metais dourados antiferrugem. Acompanha alça ajustável de ombro e transversal.",
+      shortDesc: "Bolsa baguete estruturada em couro eco tom terracota.",
+      price: 139.90,
+      promoPrice: 89.90,
+      categoryId: catMap["acessorios"],
+      images: [
+        "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=600"
+      ],
+      stock: 50,
+      unit: "Tamanho Único",
+      sku: "SLT-ACC-001",
+      active: true,
+      featured: true,
+    },
+
+    // Calçados
+    {
+      name: "Sandália Mule Salto Bloco Bege Cappuccino",
+      description: "Sandália mule feminina com salto bloco de 6cm, tiras acolchoadas macias e palmilha confort revestida. Design minimalista e versátil para usar o dia todo.",
+      shortDesc: "Mule com salto bloco macio e tiras em bege cappuccino.",
+      price: 159.90,
+      promoPrice: 119.90,
+      categoryId: catMap["calcados"],
+      images: [
+        "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80&w=600"
+      ],
+      stock: 20,
+      unit: "Tamanhos: 34 ao 39",
+      sku: "SLT-SHW-001",
+      active: true,
+      featured: true,
     },
   ];
 
@@ -230,7 +241,7 @@ async function main() {
     });
   }
 
-  console.log("Seeded database successfully with stock images!");
+  console.log("SILUET fashion catalog seeded successfully!");
 }
 
 main()

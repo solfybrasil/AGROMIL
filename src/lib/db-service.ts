@@ -1,5 +1,13 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import prisma from "./prisma"; // kept for type-checking only — never called at runtime (hasPrismaUrl = false)
+// Safe browser proxy stub for Prisma — prevents bundling Node-only @prisma/client into browser JS
+const prisma: any = new Proxy({}, {
+  get() {
+    return () => new Proxy({}, {
+      get() {
+        return () => Promise.reject(new Error("Prisma is disabled in browser mode. Using Supabase REST instead."));
+      }
+    });
+  }
+});
 import { db } from "./supabase";
 import { MOCK_CATEGORIES, MOCK_PRODUCTS, MOCK_ORDERS } from "./mocks";
 
@@ -36,9 +44,8 @@ let sessionCoupons: any[] = [
 let sessionReviews: any[] = [];
 let sessionFavorites: any[] = [];
 let sessionBanners: any[] = [
-  { id: "banner-1", title: "Frete Grátis acima de R$ 150", subtitle: "Para todo o interior de Itu", linkUrl: "/", linkLabel: "Comprar Agora", bgColor: "#1b4332", textColor: "#ffffff", active: true, displayOrder: 1 },
-  { id: "banner-2", title: "Ração Golden com 15% OFF", subtitle: "Válido até o fim do estoque", linkUrl: "/categoria/petshop", linkLabel: "Ver Ofertas", bgColor: "#92400e", textColor: "#ffffff", active: true, displayOrder: 2 },
-  { id: "banner-3", title: "Novos Produtos de Irrigação", subtitle: "Gotejadores e mangueiras", linkUrl: "/categoria/irrigacao", linkLabel: "Conferir", bgColor: "#1e3a5f", textColor: "#ffffff", active: true, displayOrder: 3 }
+  { id: "twin-1", title: "Vestidos longos", subtitle: "Linha completa", linkUrl: "/categoria/vestidos", linkLabel: "confira", imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=600", bgColor: "#E5C3B0", textColor: "#2B2620", active: true, displayOrder: 1 },
+  { id: "twin-2", title: "Acessórios", subtitle: "Linha completa", linkUrl: "/categoria/acessorios", linkLabel: "confira", imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=600", bgColor: "#D4DEC9", textColor: "#2E422B", active: true, displayOrder: 2 }
 ];
 let sessionStockAlerts: any[] = [];
 let sessionPriceHistory: any[] = [];
@@ -98,12 +105,12 @@ async function ensureDefaultCategories() {
       const { data, error } = await db.from("Category").select("id");
       if (!error && (!data || data.length === 0)) {
         await db.from("Category").insert([
-          { id: "cat-jardinagem", name: "Jardinagem & Vasos", slug: "jardinagem", displayOrder: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          { id: "cat-petshop", name: "Rações & Acessórios Pet", slug: "petshop", displayOrder: 2, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          { id: "cat-agropecuaria", name: "Agropecuária Geral", slug: "agropecuaria", displayOrder: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          { id: "cat-ferramentas", name: "Ferramentas & Equipamentos", slug: "ferramentas", displayOrder: 4, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          { id: "cat-irrigacao", name: "Irrigação", slug: "irrigacao", displayOrder: 5, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-          { id: "cat-vestuario-epi", name: "Vestuário & EPI", slug: "vestuario-epi", displayOrder: 6, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+          { id: "cat-vestidos", name: "Vestidos & Midis", slug: "vestidos", displayOrder: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: "cat-tops-blusas", name: "Tops & Croppeds", slug: "tops-blusas", displayOrder: 2, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: "cat-conjuntos", name: "Conjuntos Alfaiataria", slug: "conjuntos", displayOrder: 3, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: "cat-calcas-jeans", name: "Calças Wide Leg & Jeans", slug: "calcas-jeans", displayOrder: 4, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: "cat-acessorios", name: "Bolsas & Acessórios", slug: "acessorios", displayOrder: 5, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+          { id: "cat-casacos-blazers", name: "Casacos & Blazers", slug: "casacos-blazers", displayOrder: 6, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
         ]);
       }
     } catch (err) {
@@ -176,7 +183,7 @@ export const dbService = {
           where,
           orderBy: { name: "asc" },
         });
-        return data.map((p) => ({
+        return data.map((p: any) => ({
           ...p,
           price: Number(p.price),
           promoPrice: p.promoPrice ? Number(p.promoPrice) : null,
@@ -260,12 +267,12 @@ export const dbService = {
           orderBy: { createdAt: "desc" },
           include: { items: { include: { product: true } } },
         });
-        return data.map((o) => ({
+        return data.map((o: any) => ({
           ...o,
           subtotal: Number(o.subtotal),
           deliveryFee: Number(o.deliveryFee),
           total: Number(o.total),
-          items: o.items.map((item) => ({
+          items: o.items.map((item: any) => ({
             ...item,
             price: Number(item.price),
             product: item.product ? {
@@ -315,7 +322,7 @@ export const dbService = {
           subtotal: Number(o.subtotal),
           deliveryFee: Number(o.deliveryFee),
           total: Number(o.total),
-          items: o.items.map((item) => ({
+          items: o.items.map((item: any) => ({
             ...item,
             price: Number(item.price),
             product: item.product ? {
@@ -576,6 +583,15 @@ export const dbService = {
       description: productData.description || productData.name,
       price: Number(productData.price),
       promoPrice: productData.promoPrice ? Number(productData.promoPrice) : null,
+      costPrice: productData.costPrice ? Number(productData.costPrice) : 0,
+      wholesalePrice: productData.wholesalePrice ? Number(productData.wholesalePrice) : null,
+      discountPercent: productData.discountPercent ? Number(productData.discountPercent) : 0,
+      isNew: productData.isNew ?? false,
+      tags: productData.tags || [],
+      weight: productData.weight ? Number(productData.weight) : 0,
+      brand: productData.brand || null,
+      minStock: productData.minStock ? Number(productData.minStock) : 5,
+      barcode: productData.barcode || null,
       stock: Number(productData.stock || 0),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -598,6 +614,11 @@ export const dbService = {
     const formatted: any = { ...productData };
     if (productData.price !== undefined) formatted.price = Number(productData.price);
     if (productData.promoPrice !== undefined) formatted.promoPrice = productData.promoPrice ? Number(productData.promoPrice) : null;
+    if (productData.costPrice !== undefined) formatted.costPrice = Number(productData.costPrice);
+    if (productData.wholesalePrice !== undefined) formatted.wholesalePrice = productData.wholesalePrice ? Number(productData.wholesalePrice) : null;
+    if (productData.discountPercent !== undefined) formatted.discountPercent = Number(productData.discountPercent);
+    if (productData.weight !== undefined) formatted.weight = Number(productData.weight);
+    if (productData.minStock !== undefined) formatted.minStock = Number(productData.minStock);
     if (productData.stock !== undefined) formatted.stock = Number(productData.stock);
     formatted.updatedAt = new Date().toISOString();
 
@@ -628,6 +649,114 @@ export const dbService = {
       return true;
     }
     sessionProducts = sessionProducts.filter((p) => p.id !== id);
+    return true;
+  },
+
+  async deleteAllProducts() {
+    if (hasPrismaUrl) {
+      await prisma.product.deleteMany({});
+      return true;
+    }
+    if (db) {
+      // Delete all rows — Supabase requires a filter; neq("id","") matches everything
+      const { error } = await db!.from("Product").delete().neq("id", "");
+      if (error) throw error;
+      return true;
+    }
+    sessionProducts = [];
+    return true;
+  },
+
+  // ==========================================
+  // PRODUCT LOTS CRUD
+  // ==========================================
+  async getLots(productId?: string) {
+    if (db) {
+      let query = db!.from("ProductLot").select("*, product:Product(id, name, price, costPrice, unit)");
+      if (productId) query = query.eq("productId", productId);
+      query = query.order("purchaseDate", { ascending: false });
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []).map((l: any) => ({
+        ...l,
+        costPrice: Number(l.costPrice),
+        quantity: Number(l.quantity),
+      }));
+    }
+    return [];
+  },
+
+  async createLot(lotData: any) {
+    const id = `lot-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const formatted = {
+      ...lotData,
+      id,
+      costPrice: Number(lotData.costPrice || 0),
+      quantity: Number(lotData.quantity || 0),
+      purchaseDate: lotData.purchaseDate || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    if (db) {
+      const { data, error } = await db!.from("ProductLot").insert([formatted]).select().single();
+      if (error) throw error;
+      return data;
+    }
+    return formatted;
+  },
+
+  async updateLot(id: string, lotData: any) {
+    const formatted: any = { ...lotData, updatedAt: new Date().toISOString() };
+    if (formatted.costPrice !== undefined) formatted.costPrice = Number(formatted.costPrice);
+    if (formatted.quantity !== undefined) formatted.quantity = Number(formatted.quantity);
+    if (db) {
+      const { data, error } = await db!.from("ProductLot").update(formatted).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    }
+    return null;
+  },
+
+  async deleteLot(id: string) {
+    if (db) {
+      const { error } = await db!.from("ProductLot").delete().eq("id", id);
+      if (error) throw error;
+    }
+    return true;
+  },
+
+  // ==========================================
+  // REVIEWS CRUD
+  // ==========================================
+  async getReviews(approvedOnly?: boolean) {
+    if (db) {
+      let query = db!.from("Review").select("*, customer:Customer(name), product:Product(name)");
+      if (approvedOnly) query = query.eq("approved", true);
+      query = query.order("createdAt", { ascending: false });
+      const { data, error } = await query;
+      if (error) return sessionReviews;
+      return data || [];
+    }
+    return approvedOnly ? sessionReviews.filter(r => r.approved) : sessionReviews;
+  },
+
+  async approveReview(id: string) {
+    if (db) {
+      const { data, error } = await db!.from("Review").update({ approved: true }).eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    }
+    const r = sessionReviews.find(x => x.id === id);
+    if (r) r.approved = true;
+    return r;
+  },
+
+  async deleteReview(id: string) {
+    if (db) {
+      const { error } = await db!.from("Review").delete().eq("id", id);
+      if (error) throw error;
+    }
+    sessionReviews = sessionReviews.filter(x => x.id !== id);
     return true;
   },
 
@@ -793,6 +922,59 @@ export const dbService = {
     );
   },
 
+  async getCustomerPreferences(customerId: string) {
+    let sessionPrefs: any = null;
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(`siluet_prefs_${customerId}`);
+        if (stored) sessionPrefs = JSON.parse(stored);
+      } catch {}
+    }
+    return executeQuery(
+      async () => sessionPrefs,
+      async () => {
+        const { data, error } = await db!
+          .from("CustomerPreferences")
+          .select("*")
+          .eq("customerId", customerId)
+          .maybeSingle();
+        if (error) throw error;
+        return data || sessionPrefs;
+      },
+      sessionPrefs || {
+        tamanhoTop: "M",
+        tamanhoCalca: "38",
+        tamanhoSapato: "36",
+        tamanhoVestido: "M",
+        estiloFavorito: "Minimalista Chic",
+        corFavorita: "Terrosos & Neutros",
+        vipTier: "Membro Gold Atelier",
+        points: 450,
+      }
+    );
+  },
+
+  async saveCustomerPreferences(customerId: string, prefs: any) {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`siluet_prefs_${customerId}`, JSON.stringify(prefs));
+      } catch {}
+    }
+
+    if (db) {
+      try {
+        await db!.from("CustomerPreferences").upsert({
+          customerId,
+          ...prefs,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn("Supabase CustomerPreferences upsert failed:", e);
+      }
+    }
+    return prefs;
+  },
+
   async getCustomerOrders(customerId: string) {
     // ── Prisma path ─────────────────────────────────────────────
     if (hasPrismaUrl) {
@@ -802,12 +984,12 @@ export const dbService = {
           include: { items: { include: { product: true } } },
           orderBy: { createdAt: "desc" },
         });
-        return rows.map((o) => ({
+        return rows.map((o: any) => ({
           ...o,
           subtotal: Number(o.subtotal),
           deliveryFee: Number(o.deliveryFee),
           total: Number(o.total),
-          items: o.items.map((item) => ({ ...item, price: Number(item.price) })),
+          items: o.items.map((item: any) => ({ ...item, price: Number(item.price) })),
         }));
       } catch (err) {
         console.warn("Prisma getCustomerOrders failed:", err);

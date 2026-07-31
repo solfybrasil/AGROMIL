@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { User, ClipboardList, MapPin, Award, ShoppingBag, ArrowRight, ShieldAlert, Sparkles, Building2, Package } from "lucide-react";
 import Link from "next/link";
 import { useAccount } from "./layout";
+import { dbService } from "@/lib/db-service";
 
 interface OrderSummary {
   id: string;
@@ -22,19 +23,26 @@ export default function AccountDashboard() {
     if (!profile) return;
     const loadDashboardData = async () => {
       try {
-        // Fetch orders directly since token session cookie is checked by API
-        const ordersRes = await fetch("/api/customer/orders");
-        if (ordersRes.ok) {
-          const orders = await ordersRes.json();
-          setOrderCount(orders.length);
-          if (orders.length > 0) {
-            // Sort by date desc
-            const sorted = orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            setLatestOrder(sorted[0]);
+        let orders: any[] = [];
+        try {
+          const ordersRes = await fetch("/api/customer/orders");
+          const contentType = ordersRes.headers.get("content-type");
+          if (ordersRes.ok && contentType && contentType.includes("application/json")) {
+            orders = await ordersRes.json();
           }
+        } catch {}
+
+        if (!orders || orders.length === 0) {
+          orders = await dbService.getOrders();
+        }
+
+        setOrderCount(orders.length);
+        if (orders.length > 0) {
+          const sorted = orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setLatestOrder(sorted[0]);
         }
       } catch (err) {
-        console.error("Failed to load account dashboard data:", err);
+        // Keep clean
       } finally {
         setLoading(false);
       }

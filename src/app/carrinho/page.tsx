@@ -11,15 +11,7 @@ import { useEffect, useState } from "react";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, getCartTotal } = useCartStore();
-  const [mounted, setMounted] = useState(false);
-
-  // Prevent hydration issues
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
+  // Subtotal calculation
   const subtotal = getCartTotal();
   const deliveryFee = subtotal >= 150 || subtotal === 0 ? 0 : 15;
   const total = subtotal + deliveryFee;

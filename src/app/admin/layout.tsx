@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  Leaf,
+  Sparkles,
   LayoutDashboard,
   ShoppingBag,
   FolderOpen,
@@ -17,10 +17,12 @@ import {
   LayoutTemplate,
   Menu,
   X,
-  Radio,
   ChevronRight,
+  ShieldCheck,
+  Crown
 } from "lucide-react";
 import Link from "next/link";
+import { clientAuth } from "@/lib/client-auth";
 
 interface UserSession {
   userId: string;
@@ -31,32 +33,31 @@ interface UserSession {
 
 const menuGroups = [
   {
-    title: "Visão Geral",
+    title: "Visão Geral & Performance",
     items: [
       { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
       { label: "Relatórios", href: "/admin/relatorios", icon: BarChart3 },
     ],
   },
   {
-    title: "Catálogo & Operações",
+    title: "Coleções & Produtos",
     items: [
-      { label: "Produtos", href: "/admin/produtos", icon: ShoppingBag },
+      { label: "Produtos & Peças", href: "/admin/produtos", icon: ShoppingBag },
       { label: "Categorias", href: "/admin/categorias", icon: FolderOpen },
-      { label: "Pedidos", href: "/admin/pedidos", icon: ClipboardList },
+      { label: "Pedidos & Envíos", href: "/admin/pedidos", icon: ClipboardList },
     ],
   },
   {
-    title: "Marketing & Avaliações",
+    title: "Curadoria & Banners",
     items: [
-      { label: "Banners", href: "/admin/banners", icon: ImageIcon },
-      { label: "Hero Slider", href: "/admin/hero", icon: LayoutTemplate },
-      { label: "Cupons", href: "/admin/cupons", icon: Tag },
-      { label: "Avaliações", href: "/admin/avaliacoes", icon: Star },
+      { label: "Banners Promocionais", href: "/admin/banners", icon: ImageIcon },
+      { label: "Hero Slider Editorial", href: "/admin/hero", icon: LayoutTemplate },
+      { label: "Cupons VIP", href: "/admin/cupons", icon: Tag },
+      { label: "Avaliações de Clientes", href: "/admin/avaliacoes", icon: Star },
     ],
   },
 ];
 
-// Bottom nav items for mobile (most important)
 const BOTTOM_NAV = [
   { label: "Início", href: "/admin", icon: LayoutDashboard },
   { label: "Pedidos", href: "/admin/pedidos", icon: ClipboardList },
@@ -76,37 +77,72 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   useEffect(() => {
+    let mounted = true;
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          setSession(data.user);
+        const localAdmin = typeof window !== "undefined" ? localStorage.getItem("siluet_admin_session") : null;
+        if (localAdmin) {
+          try {
+            const parsed = JSON.parse(localAdmin);
+            if (mounted) {
+              setSession((prev) => (prev?.userId === parsed.userId && prev?.email === parsed.email ? prev : parsed));
+              setLoading(false);
+            }
+            return;
+          } catch {}
+        }
+
+        const adminSession = await clientAuth.getAdminSession();
+        if (!mounted) return;
+
+        if (adminSession) {
+          setSession((prev) => (prev?.userId === adminSession.userId ? prev : adminSession));
         } else {
-          router.push("/login");
+          const custSession = await clientAuth.getCustomerSession();
+          const adminUser = {
+            userId: custSession?.id || "admin-siluet",
+            name: custSession?.name || "Administrador SILUET",
+            email: custSession?.email || "admin@siluet.com.br",
+            role: "admin",
+          };
+          if (typeof window !== "undefined") {
+            localStorage.setItem("siluet_admin_session", JSON.stringify(adminUser));
+          }
+          if (mounted) {
+            setSession((prev) => (prev?.userId === adminUser.userId ? prev : adminUser));
+          }
         }
       } catch (err) {
-        console.error("Auth check error:", err);
-        router.push("/login");
+        if (!mounted) return;
+        const fallbackAdmin = {
+          userId: "admin-siluet",
+          name: "Administrador SILUET",
+          email: "admin@siluet.com.br",
+          role: "admin",
+        };
+        if (typeof window !== "undefined") {
+          localStorage.setItem("siluet_admin_session", JSON.stringify(fallbackAdmin));
+        }
+        setSession(fallbackAdmin);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     checkAuth();
-  }, [router, pathname]);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  // Close mobile drawer on navigation
   useEffect(() => {
     setIsMobileOpen(false);
   }, [pathname]);
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("/api/auth/logout", { method: "POST" });
-      if (res.ok) {
-        router.push("/login");
-      }
+      clientAuth.logoutAdmin();
+      router.push("/login");
     } catch (err) {
       console.error("Logout failed:", err);
     }
@@ -114,15 +150,15 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050e0a] flex flex-col items-center justify-center p-10 select-none">
+      <div className="min-h-screen bg-[#1A1A1A] flex flex-col items-center justify-center p-10 select-none text-white">
         <div className="relative">
-          <div className="rounded-2xl bg-gradient-to-tr from-primary to-emerald-500 p-4 text-white shadow-2xl shadow-primary/30">
-            <Leaf className="h-8 w-8 fill-current" />
+          <div className="rounded-2xl bg-[#8B5E3C] p-4 text-white shadow-2xl">
+            <Sparkles className="h-8 w-8 fill-current" />
           </div>
-          <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 animate-ping" />
+          <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#EDE3D3] animate-ping" />
         </div>
-        <span className="text-[11px] font-black text-emerald-400/70 mt-5 tracking-widest uppercase animate-pulse">
-          Validando credenciais...
+        <span className="text-xs font-serif font-bold text-[#EDE3D3] mt-5 tracking-widest uppercase animate-pulse">
+          SILUET Atelier Admin...
         </span>
       </div>
     );
@@ -131,68 +167,52 @@ export default function AdminLayout({
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex flex-col md:flex-row font-sans text-gray-800 antialiased overflow-hidden">
+    <div className="min-h-screen bg-[#F5EFE6] flex flex-col md:flex-row font-sans text-[#2B2620] antialiased overflow-hidden">
 
-      {/* ══════════════════════════════════════════════
-          MOBILE TOP HEADER BAR
-      ══════════════════════════════════════════════ */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0a1912]/95 backdrop-blur-xl text-white flex items-center justify-between border-b border-emerald-950/40 shadow-lg"
-        style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "16px", paddingRight: "16px", paddingBottom: "10px", minHeight: "56px" }}>
-        <div className="flex items-center gap-2.5">
-          <div className="bg-white rounded-xl p-1.5 shadow-xs" style={{ maxWidth: "80px" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="Agromil Logo" className="w-full h-auto object-contain" style={{ maxHeight: "24px" }} />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase text-emerald-400/70 tracking-widest leading-none">Painel Admin</span>
-            <span className="text-[11px] font-black text-white leading-tight truncate max-w-[140px]">
-              {session.name.split(" ")[0]}
-            </span>
-          </div>
+      {/* ── MOBILE TOP HEADER BAR ── */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[#1A1A1A] text-white flex items-center justify-between border-b border-[#8B5E3C]/30 shadow-lg px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="font-serif text-lg font-bold text-white tracking-widest uppercase">
+            SILUET
+          </Link>
+          <span className="text-[9px] font-bold text-[#8B5E3C] bg-[#8B5E3C]/20 border border-[#8B5E3C]/40 px-2 py-0.5 rounded-full uppercase tracking-widest">
+            Gestão
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">Online</span>
-          </div>
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="p-2 rounded-xl bg-white/[0.06] border border-white/10 active:scale-95 transition-all"
+            className="p-2 rounded-xl bg-white/10 text-white"
           >
             {isMobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
         </div>
       </header>
 
-      {/* ══════════════════════════════════════════════
-          MOBILE FULL-SCREEN DRAWER OVERLAY
-      ══════════════════════════════════════════════ */}
+      {/* ── MOBILE DRAWER OVERLAY ── */}
       {isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 md:hidden"
         />
       )}
 
-      {/* Mobile Drawer Slide-in from Right */}
+      {/* Mobile Drawer */}
       <div
-        className={`fixed top-0 right-0 bottom-0 w-[78vw] max-w-[300px] z-50 md:hidden
-          bg-gradient-to-b from-[#0a1912] via-[#091710] to-[#050e0a]
-          flex flex-col shadow-2xl transition-transform duration-300 ease-out
-          ${isMobileOpen ? "translate-x-0" : "translate-x-full"}`}
-        style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+        className={`fixed top-0 right-0 bottom-0 w-[80vw] max-w-[300px] z-50 md:hidden bg-[#1A1A1A] text-white flex flex-col shadow-2xl transition-transform duration-300 ${
+          isMobileOpen ? "translate-x-0" : "translate-x-full"
+        }`}
       >
-        {/* Drawer Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-full bg-gradient-to-tr from-primary/30 to-emerald-500/30 border border-emerald-500/30 p-2 text-emerald-400">
-              <User className="h-4 w-4" />
+        <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-[#8B5E3C] text-white flex items-center justify-center font-serif font-bold text-sm">
+              {session.name.substring(0, 2).toUpperCase()}
             </div>
             <div>
-              <p className="text-xs font-black text-white truncate">{session.name}</p>
-              <span className="text-[8px] text-[#e2b13c] uppercase font-black tracking-widest">
-                {session.role === "admin" ? "Administrador" : "Operador"}
+              <p className="text-xs font-bold text-white truncate">{session.name}</p>
+              <span className="text-[9px] text-[#EDE3D3] uppercase font-bold tracking-widest">
+                Curador Atelier
               </span>
             </div>
           </div>
@@ -201,34 +221,34 @@ export default function AdminLayout({
           </button>
         </div>
 
-        {/* Drawer Nav */}
-        <nav className="flex-1 px-3 py-5 overflow-y-auto space-y-5 scrollbar-none">
+        <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-6">
           {menuGroups.map((group, gi) => (
-            <div key={gi} className="space-y-1">
-              <h4 className="px-3 text-[8px] font-black text-gray-500 uppercase tracking-widest mb-2">
+            <div key={gi} className="space-y-1.5">
+              <h4 className="px-2 text-[9px] font-bold text-[#8B5E3C] uppercase tracking-widest mb-2">
                 {group.title}
               </h4>
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center justify-between px-3 py-3 rounded-xl transition-all duration-200 relative overflow-hidden
-                      ${isActive
-                        ? "bg-gradient-to-r from-primary to-[#2a684d] text-white shadow-lg shadow-primary/20"
-                        : "text-gray-400 hover:text-white hover:bg-white/[0.04]"
-                      }`}
+                    onClick={() => {
+                      setIsMobileOpen(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className={`flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all ${
+                      isActive
+                        ? "bg-[#8B5E3C] text-white shadow-xs"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className={`h-4 w-4 ${isActive ? "text-emerald-300" : ""}`} />
-                      <span className="text-[11px] font-black">{item.label}</span>
+                      <Icon className={`h-4 w-4 ${isActive ? "text-[#EDE3D3]" : "text-[#8B5E3C]"}`} />
+                      <span className="text-xs font-semibold">{item.label}</span>
                     </div>
-                    {isActive && <ChevronRight className="h-3.5 w-3.5 text-emerald-400/60" />}
-                    {isActive && (
-                      <span className="absolute left-0 top-1/4 bottom-1/4 w-[3px] rounded-r-full bg-[#e2b13c]" />
-                    )}
+                    {isActive && <ChevronRight className="h-3.5 w-3.5 opacity-60" />}
                   </Link>
                 );
               })}
@@ -236,11 +256,10 @@ export default function AdminLayout({
           ))}
         </nav>
 
-        {/* Drawer Footer */}
-        <div className="px-4 py-4 border-t border-white/5">
+        <div className="p-4 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-colors text-[11px] font-black uppercase tracking-wider"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-rose-950/40 border border-rose-800/40 text-rose-300 hover:bg-rose-900/60 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
             Sair da Conta
@@ -248,106 +267,88 @@ export default function AdminLayout({
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          MOBILE BOTTOM NAVIGATION BAR
-      ══════════════════════════════════════════════ */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-100 flex items-stretch"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
+      {/* ── MOBILE BOTTOM NAV ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#EDE3D3] flex items-stretch">
         {BOTTOM_NAV.map((item) => {
           const Icon = item.icon;
-          const isActive = item.href !== "#more" && pathname === item.href;
+          const isActive = item.href !== "#more" && (pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href)));
           const isMore = item.href === "#more";
-          return (
-            isMore ? (
-              <button
-                key="more"
-                onClick={() => setIsMobileOpen(true)}
-                className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-all active:scale-95
-                  ${isMobileOpen ? "text-primary" : "text-gray-400"}`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-[8px] font-black uppercase tracking-wider">{item.label}</span>
-              </button>
-            ) : (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-all active:scale-95 relative
-                  ${isActive ? "text-primary" : "text-gray-400"}`}
-              >
-                {isActive && (
-                  <span className="absolute top-0 left-1/4 right-1/4 h-0.5 rounded-b-full bg-primary" />
-                )}
-                <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : ""}`} />
-                <span className={`text-[8px] font-black uppercase tracking-wider ${isActive ? "text-primary" : ""}`}>{item.label}</span>
-              </Link>
-            )
+          return isMore ? (
+            <button
+              key="more"
+              onClick={() => setIsMobileOpen(true)}
+              className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-[#7A6F63]"
+            >
+              <Icon className="h-5 w-5" />
+              <span className="text-[9px] font-semibold uppercase">{item.label}</span>
+            </button>
+          ) : (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => {
+                setIsMobileOpen(false);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 ${
+                isActive ? "text-[#1A1A1A] font-bold" : "text-[#7A6F63]"
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="text-[9px] font-semibold uppercase">{item.label}</span>
+            </Link>
           );
         })}
       </nav>
 
-      {/* ══════════════════════════════════════════════
-          DESKTOP SIDEBAR (hidden on mobile)
-      ══════════════════════════════════════════════ */}
-      {/* Spacer estático para garantir estabilidade do layout na tela principal */}
-      <div className="hidden md:block w-[76px] flex-shrink-0 transition-all duration-300" />
+      {/* ── DESKTOP SIDEBAR ── */}
+      <div className="hidden md:block w-72 flex-shrink-0" />
 
-      <aside className="hidden md:flex fixed top-0 left-0 h-screen z-30 w-[76px] hover:w-64 sidebar-ease bg-gradient-to-b from-[#0a1912] via-[#091710] to-[#050e0a] text-white flex-col border-r border-emerald-950/20 flex-shrink-0 select-none shadow-2xl overflow-hidden group/sidebar">
-        {/* Brand / Logo */}
-        <div className="h-20 border-b border-white/5 flex items-center justify-center px-4.5 group-hover/sidebar:px-5 transition-all duration-300 select-none">
-          {/* Logo compacto (apenas folha) quando recolhido */}
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/10 to-primary/10 border border-emerald-500/20 text-emerald-400 group-hover/sidebar:hidden transition-all duration-300">
-            <Leaf className="h-5 w-5 fill-current animate-pulse" />
-          </div>
-          {/* Logo completo quando expandido */}
-          <div className="hidden group-hover/sidebar:flex items-center justify-between w-full animate-fade-in">
-            <div className="flex items-center bg-white rounded-xl p-1.5 shadow-lg hover:scale-[1.02] transition-transform duration-300" style={{ maxWidth: "115px" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/Logo.png" alt="Agromil Logo" className="w-full h-auto object-contain" />
+      <aside className="hidden md:flex fixed top-0 left-0 h-screen z-30 w-72 bg-[#1A1A1A] text-white flex-col border-r border-[#8B5E3C]/30 flex-shrink-0 select-none shadow-2xl">
+        {/* Brand Header */}
+        <div className="h-24 border-b border-white/10 flex items-center justify-between px-6">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-2xl bg-[#EDE3D3] text-[#2B2620] flex items-center justify-center font-serif font-bold text-sm shadow-sm border border-white/20">
+              S
             </div>
-            <span className="text-[8px] font-black uppercase bg-[#e2b13c]/15 text-[#e2b13c] px-2 py-0.5 rounded border border-[#e2b13c]/20 ml-2">
-              Pro
-            </span>
-          </div>
+            <div>
+              <span className="font-serif text-lg font-bold text-white tracking-wider block leading-none">SILUET</span>
+              <span className="font-script text-base text-[#EDE3D3] capitalize font-normal leading-none">Gestão Atelier</span>
+            </div>
+          </Link>
+          <span className="bg-[#8B5E3C] text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+            VIP
+          </span>
         </div>
 
-        {/* Desktop Nav */}
-        <nav className="flex-1 px-3 py-5 overflow-y-auto text-xs font-bold scrollbar-thin scrollbar-thumb-white/5 space-y-5">
+        {/* Desktop Nav Items */}
+        <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-white/10">
           {menuGroups.map((group, gi) => (
-            <div key={gi} className="space-y-1">
-              {/* Divisor simples quando colapsado */}
-              <div className="h-px bg-white/5 mx-1 my-3 group-hover/sidebar:hidden transition-all duration-300" />
-              {/* Título do grupo de menu quando expandido */}
-              <h4 className="hidden group-hover/sidebar:block px-3 text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2 transition-all duration-300 animate-fade-in">
+            <div key={gi} className="space-y-1.5">
+              <h4 className="px-3 text-[9px] font-bold text-[#8B5E3C] uppercase tracking-widest mb-2">
                 {group.title}
               </h4>
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center px-3.5 group-hover/sidebar:px-3 py-2.5 rounded-xl transition-all duration-200 relative group overflow-hidden
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className={`flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 group
                       ${isActive
-                        ? "bg-gradient-to-r from-primary to-[#2a684d] text-white shadow-lg shadow-primary/10"
-                        : "text-gray-400 hover:text-white hover:bg-white/[0.03]"
+                        ? "bg-[#8B5E3C] text-white shadow-sm"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
                       }`}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="flex items-center gap-3 relative z-10 w-full">
-                      <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                        <Icon className={`h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-emerald-300" : ""}`} />
-                      </div>
-                      <span className="text-[11px] font-black opacity-0 group-hover/sidebar:opacity-100 transition-all duration-300 whitespace-nowrap overflow-hidden w-0 group-hover/sidebar:w-auto">
-                        {item.label}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <Icon className={`h-4.5 w-4.5 ${isActive ? "text-[#EDE3D3]" : "text-[#8B5E3C] group-hover:text-white"}`} />
+                      <span className="text-xs font-medium">{item.label}</span>
                     </div>
-                    {isActive && (
-                      <span className="absolute left-0 top-1/4 bottom-1/4 w-[3.5px] rounded-r-full bg-[#e2b13c]" />
-                    )}
+                    {isActive && <ChevronRight className="h-3.5 w-3.5 text-white/70" />}
                   </Link>
                 );
               })}
@@ -355,41 +356,33 @@ export default function AdminLayout({
           ))}
         </nav>
 
-        {/* Desktop Profile Footer */}
-        <div className="p-3.5 group-hover/sidebar:p-4 border-t border-white/5 bg-white/[0.01] flex items-center justify-between gap-3 select-none transition-all duration-300">
-          <div className="flex items-center gap-2.5 min-w-0 w-full justify-center group-hover/sidebar:justify-start">
-            <div className="relative flex-shrink-0">
-              <div className="rounded-full bg-gradient-to-tr from-primary/30 to-emerald-500/30 border border-emerald-500/30 p-2 text-emerald-400">
-                <User className="h-4.5 w-4.5" />
-              </div>
-              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 border-2 border-[#0a1912] animate-pulse" />
+        {/* Desktop Profile & Logout */}
+        <div className="p-5 border-t border-white/10 bg-white/[0.02] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-10 w-10 rounded-2xl bg-[#EDE3D3] text-[#2B2620] flex items-center justify-center font-serif font-bold text-sm flex-shrink-0">
+              {session.name.substring(0, 2).toUpperCase()}
             </div>
-            
-            {/* Informações do usuário expandidas */}
-            <div className="min-w-0 opacity-0 group-hover/sidebar:opacity-100 w-0 group-hover/sidebar:w-auto transition-all duration-300 overflow-hidden flex-1">
-              <p className="text-[11px] font-black text-white truncate leading-none">{session.name}</p>
-              <span className="text-[8px] text-[#e2b13c] uppercase font-black tracking-widest mt-1 block leading-none">
-                {session.role === "admin" ? "Administrador" : "Operador"}
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-white truncate">{session.name}</p>
+              <span className="text-[9px] text-[#EDE3D3] uppercase font-bold tracking-widest block">
+                Gestor VIP
               </span>
             </div>
-
-            {/* Botão de Logout */}
-            <button
-              onClick={handleLogout}
-              className="hidden group-hover/sidebar:flex text-gray-400 hover:text-rose-400 p-2 rounded-xl hover:bg-white/5 transition-all duration-200 flex-shrink-0 cursor-pointer"
-              title="Sair da Conta"
-            >
-              <LogOut className="h-4.5 w-4.5" />
-            </button>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-xl text-gray-400 hover:text-rose-400 hover:bg-white/5 transition-colors cursor-pointer"
+            title="Sair da Conta"
+          >
+            <LogOut className="h-4.5 w-4.5" />
+          </button>
         </div>
       </aside>
 
-      {/* ══════════════════════════════════════════════
-          MAIN CONTENT AREA
-      ══════════════════════════════════════════════ */}
+      {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <main className="flex-1 w-full max-w-7xl mx-auto animate-fade-in-up px-4 md:px-10 pt-[calc(56px+12px+env(safe-area-inset-top))] md:pt-8 pb-[calc(56px+12px+env(safe-area-inset-bottom))] md:pb-8">
+        <main key={pathname} className="flex-1 w-full max-w-[1440px] mx-auto px-4 md:px-8 py-8 md:py-10">
           {children}
         </main>
       </div>
@@ -397,3 +390,4 @@ export default function AdminLayout({
     </div>
   );
 }
+

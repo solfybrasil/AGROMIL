@@ -100,7 +100,10 @@ export const useCartStore = create<CartState>()(
         set((state) => ({ isOpen: open !== undefined ? open : !state.isOpen })),
 
       openProductModal: (product) => {
-        set({ activeProduct: product, isProductModalOpen: true });
+        if (typeof window !== "undefined" && product?.id) {
+          window.location.href = `/produto/${product.id}`;
+        }
+        set({ activeProduct: product, isProductModalOpen: false });
       },
 
       closeProductModal: () => {

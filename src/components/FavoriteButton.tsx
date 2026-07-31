@@ -17,8 +17,16 @@ export default function FavoriteButton({ productId, size = "md" }: FavoriteButto
   useEffect(() => {
     const checkFavoriteStatus = async () => {
       try {
+        // Check localStorage first
+        const localFavs = JSON.parse(localStorage.getItem("siluet_favorites") || "[]");
+        if (Array.isArray(localFavs) && localFavs.includes(productId)) {
+          setIsFavorited(true);
+          return;
+        }
+
         const res = await fetch(`/api/favoritos?checkIds=${productId}`);
-        if (res.ok) {
+        const contentType = res.headers.get("content-type");
+        if (res.ok && contentType && contentType.includes("application/json")) {
           const favoritedIds = await res.json();
           if (Array.isArray(favoritedIds) && favoritedIds.includes(productId)) {
             setIsFavorited(true);
@@ -38,40 +46,34 @@ export default function FavoriteButton({ productId, size = "md" }: FavoriteButto
     if (loading) return;
     setLoading(true);
 
-    // Optimistic Update
     const previous = isFavorited;
-    setIsFavorited(!previous);
+    const nextState = !previous;
+    setIsFavorited(nextState);
+
+    // Save to localStorage
+    try {
+      const localFavs: string[] = JSON.parse(localStorage.getItem("siluet_favorites") || "[]");
+      const updated = nextState
+        ? Array.from(new Set([...localFavs, productId]))
+        : localFavs.filter((id) => id !== productId);
+      localStorage.setItem("siluet_favorites", JSON.stringify(updated));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("siluet_favorites_updated"));
+      }
+    } catch {}
 
     try {
       if (previous) {
-        // Remove
-        const res = await fetch(`/api/favoritos?productId=${productId}`, { method: "DELETE" });
-        if (!res.ok) {
-          if (res.status === 401) {
-            router.push(`/login?redirect=${window.location.pathname}`);
-            setIsFavorited(previous);
-          } else {
-            setIsFavorited(previous);
-          }
-        }
+        await fetch(`/api/favoritos?productId=${productId}`, { method: "DELETE" }).catch(() => {});
       } else {
-        // Add
-        const res = await fetch("/api/favoritos", {
+        await fetch("/api/favoritos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId }),
-        });
-        if (!res.ok) {
-          if (res.status === 401) {
-            router.push(`/login?redirect=${window.location.pathname}`);
-            setIsFavorited(previous);
-          } else {
-            setIsFavorited(previous);
-          }
-        }
+        }).catch(() => {});
       }
     } catch {
-      setIsFavorited(previous);
+      // Keep optimistic state
     } finally {
       setLoading(false);
     }

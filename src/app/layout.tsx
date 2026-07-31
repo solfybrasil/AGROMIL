@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import PWAInstaller from "@/components/PWAInstaller";
 import ChatWidget from "@/components/ChatWidget";
 import { CartToastProvider } from "@/components/CartToast";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -11,9 +12,15 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
+const playfairDisplay = Playfair_Display({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+});
+
 export const metadata: Metadata = {
-  title: "Agromil Agropecuária - Itu/SP | Loja & Agropecuária Geral",
-  description: "Encontre tudo em jardinagem, pet shop, ferramentas, irrigação e insumos agropecuários na Agromil em Itu/SP. Qualidade e tradição para sua casa e campo.",
+  title: "Agromil | Marketplace Agropecuário",
+  description: "Descubra o melhor em agropecuária, jardinagem, petshop, ferramentas e equipamentos. Agromil — qualidade e confiança para o campo e para casa.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -30,11 +37,15 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${plusJakartaSans.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${playfairDisplay.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#fdfdfb] text-[#1a2f23]">
+      <body className="min-h-full flex flex-col bg-[#F5EFE6] text-[#2B2620]">
         <CartToastProvider>
-          {children}
+          {/* Main content — extra bottom padding on mobile so bottom nav doesn't overlap */}
+          <div className="flex-1 flex flex-col pb-mobile-nav md:pb-0">
+            {children}
+          </div>
+          <MobileBottomNav />
           <PWAInstaller />
           <ChatWidget />
         </CartToastProvider>

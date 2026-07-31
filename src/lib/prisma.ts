@@ -1,9 +1,9 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = typeof process !== "undefined" && process.env ? process.env.DATABASE_URL : undefined;
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = (typeof globalThis !== "undefined" ? globalThis : {}) as unknown as { prisma: PrismaClient };
 
 const hasDbUrl =
   typeof connectionString === "string" &&
@@ -22,7 +22,7 @@ if (hasDbUrl) {
     prismaInstance = new PrismaClient({
       adapter,
       log:
-        process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+        typeof process !== "undefined" && process.env?.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     });
   }
 } else {
@@ -51,7 +51,7 @@ if (hasDbUrl) {
 
 export const prisma = prismaInstance;
 
-if (process.env.NODE_ENV !== "production" && hasDbUrl) {
+if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production" && hasDbUrl) {
   globalForPrisma.prisma = prismaInstance;
 }
 
