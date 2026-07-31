@@ -26,36 +26,36 @@ export default function CategoryPage() {
   let categoryIcon = Flower2;
 
   switch (slug) {
-    case "jardinagem":
-      categoryName = "Jardinagem & Vasos";
-      categoryIcon = Flower2;
+    case "vestidos":
+      categoryName = "Vestidos & Midis";
+      categoryIcon = Sparkles;
       break;
-    case "petshop":
-      categoryName = "Rações & Acessórios Pet";
-      categoryIcon = Dog;
+    case "tops-blusas":
+      categoryName = "Tops & Croppeds";
+      categoryIcon = Sparkles;
       break;
-    case "agropecuaria":
-      categoryName = "Agropecuária Geral";
-      categoryIcon = Wheat;
+    case "conjuntos":
+      categoryName = "Conjuntos Alfaiataria";
+      categoryIcon = Sparkles;
       break;
-    case "ferramentas":
-      categoryName = "Ferramentas & Equipamentos";
-      categoryIcon = Sprout;
+    case "calcas-jeans":
+      categoryName = "Calças Wide Leg & Jeans";
+      categoryIcon = Sparkles;
       break;
-    case "irrigacao":
-      categoryName = "Irrigação";
-      categoryIcon = Pipette;
+    case "acessorios":
+      categoryName = "Bolsas & Acessórios";
+      categoryIcon = Sparkles;
       break;
-    case "vestuario-epi":
-      categoryName = "Vestuário & EPI";
-      categoryIcon = ShieldAlert;
+    case "casacos-blazers":
+      categoryName = "Casacos & Blazers";
+      categoryIcon = Sparkles;
       break;
     case "busca":
       categoryName = `Resultados para: "${searchQuery}"`;
       categoryIcon = SlidersHorizontal;
       break;
     default:
-      categoryName = "Produtos";
+      categoryName = slug ? slug.replace("-", " ").toUpperCase() : "Coleção";
       categoryIcon = SlidersHorizontal;
   }
 

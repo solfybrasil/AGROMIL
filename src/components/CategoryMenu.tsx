@@ -22,12 +22,12 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
 ];
 
 const ICON_MAP: Record<string, any> = {
-  jardinagem: Flower2,
-  petshop: Dog,
-  agropecuaria: Wheat,
-  ferramentas: Sprout,
-  irrigacao: Pipette,
-  "vestuario-epi": ShieldAlert,
+  vestidos: Sparkles,
+  "tops-blusas": Sparkles,
+  conjuntos: Sparkles,
+  "calcas-jeans": Sparkles,
+  acessorios: ShoppingBag,
+  "casacos-blazers": Sparkles,
 };
 
 export default function CategoryMenu() {

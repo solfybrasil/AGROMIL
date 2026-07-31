@@ -47,15 +47,15 @@ interface ProductFormProps {
 // ─── Constants ─────────────────────────────────────────────────────────────
 
 const DEFAULT_CATEGORIES: Category[] = [
-  { id: "cat-jardinagem", name: "Jardinagem & Vasos" },
-  { id: "cat-petshop", name: "Rações & Acessórios Pet" },
-  { id: "cat-agropecuaria", name: "Agropecuária Geral" },
-  { id: "cat-ferramentas", name: "Ferramentas & Equipamentos" },
-  { id: "cat-irrigacao", name: "Irrigação" },
-  { id: "cat-vestuario-epi", name: "Vestuário & EPI" },
+  { id: "cat-vestidos", name: "Vestidos & Midis" },
+  { id: "cat-tops-blusas", name: "Tops & Croppeds" },
+  { id: "cat-conjuntos", name: "Conjuntos Alfaiataria" },
+  { id: "cat-calcas-jeans", name: "Calças Wide Leg & Jeans" },
+  { id: "cat-acessorios", name: "Bolsas & Acessórios" },
+  { id: "cat-casacos-blazers", name: "Casacos & Blazers" },
 ];
 
-const PRESET_UNITS = ["Unidade", "Saco 5kg", "Saco 15kg", "Caixa", "Pacote", "Litro", "Kg", "Grama"];
+const PRESET_UNITS = ["Peça", "Conjunto", "Unidade", "Par", "Kit", "P", "M", "G", "GG"];
 
 const TABS = [
   { id: "identity", label: "Identificação", icon: FileText, desc: "Nome, marca, categoria" },

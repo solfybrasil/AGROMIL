@@ -34,7 +34,7 @@ export default function CartPage() {
             </div>
             <h2 className="text-xl font-bold text-gray-800">Seu carrinho está vazio</h2>
             <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto leading-relaxed">
-              Você ainda não adicionou produtos. Visite nossas categorias para encontrar as melhores opções de jardinagem, rações e ferramentas.
+              Você ainda não adicionou peças. Visite nossas coleções para encontrar vestidos, conjuntos de alfaiataria e acessórios exclusivos.
             </p>
             <Link
               href="/"

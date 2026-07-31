@@ -20,30 +20,30 @@ interface HeroSlide {
 
 const DEFAULT_SLIDES: HeroSlide[] = [
   {
-    tag: "AGROPECUÁRIA & CAMPO 2026",
-    title: "Tudo para o Campo e Produção Rural",
-    subtitle: "Rações, suplementos minerais, ferramentas e equipamentos de alta performance para o produtor.",
-    image: "https://images.unsplash.com/photo-1500595046743-cd271c9d7a40?q=80&w=1920&auto=format&fit=crop",
-    link: "/categoria/agropecuaria",
-    buttonText: "Ver Produtos",
+    tag: "COLEÇÃO EDITORIAL 2026",
+    title: "Eleve Seu Estilo Diário",
+    subtitle: "Peças atemporais desenvolvidas para conforto superior.",
+    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop",
+    link: "/categoria/vestidos",
+    buttonText: "Comprar Agora",
     step: "01",
   },
   {
-    tag: "JARDINAGEM & PLANTAÇÃO",
-    title: "Cultive Vida e Verdor com Qualidade",
-    subtitle: "Vasos decorativos, adubos orgânicos, substratos e sistemas completos de irrigação.",
-    image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=1920&auto=format&fit=crop",
-    link: "/categoria/jardinagem",
-    buttonText: "Ver Jardinagem",
+    tag: "LANÇAMENTO DE INVERNO",
+    title: "Silhuetas Minimalistas",
+    subtitle: "Seda e linho puro em cortes de alta alfaiataria.",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1920&auto=format&fit=crop",
+    link: "/categoria/conjuntos",
+    buttonText: "Ver Coleção",
     step: "02",
   },
   {
-    tag: "PETSHOP & SAÚDE ANIMAL",
-    title: "Nutrição e Cuidado para Seu Pet",
-    subtitle: "As melhores marcas de ração, medicamentos, camas e acessórios para cães, gatos e grandes animais.",
-    image: "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?q=80&w=1920&auto=format&fit=crop",
-    link: "/categoria/petshop",
-    buttonText: "Ver Petshop",
+    tag: "ACESSÓRIOS AUTORAIS",
+    title: "Detalhes Que Definem Luxo",
+    subtitle: "Bolsas, calçados e joias minimalistas autorais.",
+    image: "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?q=80&w=1920&auto=format&fit=crop",
+    link: "/categoria/acessorios",
+    buttonText: "Ver Acessórios",
     step: "03",
   },
 ];
@@ -59,12 +59,12 @@ export default function HeroSlider() {
       const stored = await heroStorage.getSlides();
       if (stored && Array.isArray(stored) && stored.length > 0) {
         const mapped = stored.map((s: any, idx: number) => ({
-          tag: s.badge || s.tag || `DESTAQUE 0${idx + 1}`,
+          tag: s.badge || s.tag || `NOVIDADE 0${idx + 1}`,
           title: s.title,
           subtitle: s.subtitle,
           image: s.imageUrl || s.image,
-          link: s.buttonLink || s.link || "/categoria/agropecuaria",
-          buttonText: s.buttonText || "Ver Produtos",
+          link: s.buttonLink || s.link || "/categoria/vestidos",
+          buttonText: s.buttonText || "Comprar Agora",
           step: `0${idx + 1}`,
         }));
         setSlides(mapped);
@@ -77,7 +77,7 @@ export default function HeroSlider() {
   useEffect(() => {
     loadSlides();
     const handleStorage = (e: StorageEvent) => {
-      if (!e.key || e.key === "agromil_hero_slides" || e.key === "siluet_hero_slides") loadSlides();
+      if (!e.key || e.key === "siluet_hero_slides") loadSlides();
     };
     let bc: BroadcastChannel | null = null;
     if (typeof window !== "undefined" && "BroadcastChannel" in window) {
@@ -143,16 +143,17 @@ export default function HeroSlider() {
             src={item.image || item.imageUrl}
             alt={item.title}
             className="w-full h-full filter brightness-90"
-            style={{ objectFit: "cover", objectPosition: "center" }}
+            style={{ objectFit: "cover", objectPosition: "top" }}
           />
         </div>
       ))}
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#F5EFE6] via-[#F5EFE6]/80 sm:via-[#F5EFE6]/70 to-transparent z-10 lg:w-3/4" />
+      {/* Bottom gradient for mobile — text fallback */}
       <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-[#F5EFE6]/60 to-transparent z-10 sm:hidden" />
 
-      {/* Desktop slide numbers */}
+      {/* ── Desktop: slide numbers right ── */}
       <div className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 hidden sm:flex flex-col items-center gap-6 z-20">
         {slides.map((item, idx) => (
           <button
@@ -169,7 +170,7 @@ export default function HeroSlider() {
             </span>
             <div
               className={`w-0.5 mt-1 transition-all duration-300 ${
-                idx === activeIdx ? "h-8 bg-[#8B5E3C]" : "h-3 bg-gray-300 group-hover:h-5"
+                idx === activeIdx ? "h-8 bg-[#1A1A1A]" : "h-3 bg-gray-300 group-hover:h-5"
               }`}
             />
           </button>
@@ -179,7 +180,7 @@ export default function HeroSlider() {
       {/* Content */}
       <div className="relative max-w-[1440px] mx-auto h-full px-3 sm:px-5 lg:px-6 flex flex-col justify-center sm:justify-between sm:py-10 lg:py-14 z-20">
 
-        {/* Mobile layout overlay */}
+        {/* ── Mobile layout: centered overlay text ── */}
         <div className="flex flex-col justify-end h-full pb-4 sm:hidden">
           <div className="inline-flex items-center gap-1.5 bg-[#EDE3D3]/70 text-[#8B5E3C] text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full w-fit mb-2">
             <Sparkles className="h-2.5 w-2.5" />
@@ -193,24 +194,24 @@ export default function HeroSlider() {
           </p>
           <Link
             href={slide.link || slide.buttonLink || "/"}
-            className="inline-flex items-center gap-2 bg-[#8B5E3C] hover:bg-[#1A1A1A] text-white font-bold text-[10px] py-2.5 px-5 w-fit transition-colors rounded-xl shadow-xs"
+            className="inline-flex items-center gap-2 bg-[#1A1A1A] hover:bg-[#8B5E3C] text-white font-bold text-[10px] py-2.5 px-5 w-fit transition-colors"
           >
-            <span>{slide.buttonText || "Ver Produtos"}</span>
+            <span>{slide.buttonText || "Comprar Agora"}</span>
             <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
 
-        {/* Desktop layout */}
+        {/* ── Desktop layout ── */}
         <div className="hidden sm:block max-w-xl my-auto space-y-5 pt-4">
-          <div className="inline-flex items-center gap-2 bg-[#EDE3D3]/80 backdrop-blur-sm text-[#8B5E3C] text-[11px] font-bold uppercase tracking-widest px-3.5 py-1.5 rounded-full border border-[#8B5E3C]/20">
+          <div className="inline-flex items-center gap-2 bg-[#EDE3D3]/80 backdrop-blur-sm text-[#8B5E3C] text-[11px] font-semibold uppercase tracking-widest px-3.5 py-1.5 rounded-full border border-[#8B5E3C]/20">
             <Sparkles className="h-3.5 w-3.5" />
             <span>{slide.tag}</span>
           </div>
           <div>
             <span className="font-script text-3xl sm:text-4xl text-[#8B5E3C] block capitalize font-normal leading-none mb-1">
-              Agromil Marketplace
+              Atelier &amp; Moda Exclusiva
             </span>
-            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-semibold text-[#2B2620] leading-[1.08] tracking-tight">
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#2B2620] leading-[1.08] tracking-tight">
               {slide.title}
             </h1>
           </div>
@@ -220,16 +221,22 @@ export default function HeroSlider() {
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <Link
               href={slide.link || slide.buttonLink || "/"}
-              className="inline-flex items-center gap-3 bg-[#8B5E3C] hover:bg-[#1A1A1A] text-white font-bold text-sm py-4 px-8 transition-all rounded-2xl shadow-md group"
+              className="inline-flex items-center gap-3 bg-[#1A1A1A] hover:bg-[#8B5E3C] text-white font-medium text-sm py-4 px-8 transition-colors shadow-md group"
             >
-              <span>{slide.buttonText || "Ver Produtos"}</span>
+              <span>Comprar Agora</span>
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="/categoria/vestidos"
+              className="inline-flex items-center gap-2 bg-white/60 hover:bg-white text-[#2B2620] font-medium text-sm py-4 px-7 border border-[#2B2620]/30 transition-colors backdrop-blur-sm"
+            >
+              <span>Ver Lookbook</span>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Mobile dots */}
+      {/* ── Mobile: swipe dots indicator ── */}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-30 sm:hidden">
         {slides.map((_, idx) => (
           <button
@@ -244,7 +251,7 @@ export default function HeroSlider() {
         ))}
       </div>
 
-      {/* Mobile arrows */}
+      {/* ── Mobile: prev/next arrows ── */}
       {slides.length > 1 && (
         <>
           <button

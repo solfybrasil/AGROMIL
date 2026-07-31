@@ -16,12 +16,12 @@ interface Category {
 }
 
 const DEFAULT_CATEGORIES: Category[] = [
-  { id: "cat-jardinagem", name: "Jardinagem & Vasos", slug: "jardinagem", displayOrder: 1, imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80" },
-  { id: "cat-petshop", name: "Rações & Acessórios Pet", slug: "petshop", displayOrder: 2, imageUrl: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&q=80" },
-  { id: "cat-agropecuaria", name: "Agropecuária Geral", slug: "agropecuaria", displayOrder: 3, imageUrl: "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=400&q=80" },
-  { id: "cat-ferramentas", name: "Ferramentas & Equipamentos", slug: "ferramentas", displayOrder: 4, imageUrl: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=400&q=80" },
-  { id: "cat-irrigacao", name: "Irrigação", slug: "irrigacao", displayOrder: 5, imageUrl: "https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?w=400&q=80" },
-  { id: "cat-vestuario-epi", name: "Vestuário & EPI", slug: "vestuario-epi", displayOrder: 6, imageUrl: "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=400&q=80" },
+  { id: "cat-vestidos", name: "Vestidos & Midis", slug: "vestidos", displayOrder: 1, imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80" },
+  { id: "cat-tops-blusas", name: "Tops & Croppeds", slug: "tops-blusas", displayOrder: 2, imageUrl: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=400&q=80" },
+  { id: "cat-conjuntos", name: "Conjuntos Alfaiataria", slug: "conjuntos", displayOrder: 3, imageUrl: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&q=80" },
+  { id: "cat-calcas-jeans", name: "Calças Wide Leg & Jeans", slug: "calcas-jeans", displayOrder: 4, imageUrl: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400&q=80" },
+  { id: "cat-acessorios", name: "Bolsas & Acessórios", slug: "acessorios", displayOrder: 5, imageUrl: "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=400&q=80" },
+  { id: "cat-casacos-blazers", name: "Casacos & Blazers", slug: "casacos-blazers", displayOrder: 6, imageUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&q=80" },
 ];
 
 export default function AdminCategories() {

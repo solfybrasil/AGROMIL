@@ -19,8 +19,8 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Agromil | Marketplace Agropecuário",
-  description: "Descubra o melhor em agropecuária, jardinagem, petshop, ferramentas e equipamentos. Agromil — qualidade e confiança para o campo e para casa.",
+  title: "AGROMIL | Moda Feminina, Vestidos, Conjuntos & Acessórios",
+  description: "Descubra o melhor da moda feminina autoral na AGROMIL. Vestidos, conjuntos de alfaiataria, tops, calças e acessórios com elegância, qualidade e entrega para todo o Brasil.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
